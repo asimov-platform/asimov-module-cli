@@ -26,6 +26,13 @@ struct Options {
 #[derive(Debug, Subcommand)]
 enum Command {
     /// TBD
+    #[clap(alias = "open")]
+    Browse {
+        /// The name of the module to browse
+        name: String,
+    },
+
+    /// TBD
     #[clap(alias = "which")]
     Find {
         /// The name of the module to find
@@ -75,6 +82,7 @@ pub fn main() -> SysexitsError {
 
     // Execute the given command:
     let result = match options.command.unwrap() {
+        Command::Browse { name } => commands::browse(name, &options.flags),
         Command::Find { name } => commands::find(name, &options.flags),
         Command::Link { name } => commands::link(name, &options.flags),
         Command::List {} => commands::list(&options.flags),

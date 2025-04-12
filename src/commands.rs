@@ -1,5 +1,8 @@
 // This is free and unencumbered software released into the public domain.
 
+mod browse;
+pub use browse::*;
+
 mod find;
 pub use find::*;
 
