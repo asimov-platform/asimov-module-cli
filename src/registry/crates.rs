@@ -42,6 +42,7 @@ pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec
                     name: mod_name.to_string(),
                     version: crate_version.vers.clone(),
                     r#type: ModuleType::Rust,
+                    url: format!("https://crates.io/crates/{}", dep_name),
                 })
             } else {
                 None

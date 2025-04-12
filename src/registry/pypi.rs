@@ -49,6 +49,7 @@ pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec
                     name: mod_name.to_string(),
                     version: package.info.version.clone(),
                     r#type: ModuleType::Python,
+                    url: format!("https://pypi.org/project/{}/", dep_name),
                 })
             } else {
                 None

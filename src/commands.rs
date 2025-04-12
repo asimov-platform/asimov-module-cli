@@ -3,5 +3,8 @@
 mod find;
 pub use find::*;
 
+mod link;
+pub use link::*;
+
 mod list;
 pub use list::*;

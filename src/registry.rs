@@ -14,6 +14,7 @@ pub struct ModuleMetadata {
     pub name: String,
     pub version: String,
     pub r#type: ModuleType,
+    pub url: String,
 }
 
 #[derive(Clone, Display, Debug)]

@@ -45,6 +45,7 @@ pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec
                     name: mod_name.to_string(),
                     version: gem_info.version.clone(),
                     r#type: ModuleType::Ruby,
+                    url: format!("https://rubygems.org/gems/{}", dep_name),
                 })
             } else {
                 None
