@@ -1,6 +1,6 @@
 // This is free and unencumbered software released into the public domain.
 
-use super::http::http_client;
+use super::{http::http_client, ModuleMetadata, ModuleType};
 use reqwest::Error;
 use serde::{Deserialize, Serialize};
 
@@ -19,7 +19,7 @@ pub async fn fetch_current_modules() -> Result<String, Error> {
 /// Parses JSON metadata for the `asimov-modules` crate and extracts module
 /// names from its runtime dependencies, removing the "asimov-" prefix and
 /// "-module" suffix.
-pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec<String>> {
+pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec<ModuleMetadata>> {
     let crate_version: CrateVersion = serde_json::from_str(json_str.as_ref())?;
 
     let module_names = crate_version
@@ -38,7 +38,11 @@ pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec
                 // Strip the "asimov-" prefix and "-module" suffix:
                 let mod_name = dep_name.strip_prefix("asimov-")?.strip_suffix("-module")?;
 
-                Some(mod_name.to_string())
+                Some(ModuleMetadata {
+                    name: mod_name.to_string(),
+                    version: crate_version.vers.clone(),
+                    r#type: ModuleType::Rust,
+                })
             } else {
                 None
             }

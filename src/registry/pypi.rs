@@ -1,6 +1,6 @@
 // This is free and unencumbered software released into the public domain.
 
-use super::http::http_client;
+use super::{http::http_client, ModuleMetadata, ModuleType};
 use reqwest::Error;
 use serde::{Deserialize, Serialize};
 
@@ -18,11 +18,11 @@ pub async fn fetch_modules(version: &str) -> Result<String, Error> {
 /// Parses JSON metadata for the `asimov-modules` package and extracts module
 /// names from its runtime dependencies, removing the "asimov-" prefix and
 /// "-module" suffix.
-pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec<String>> {
-    let response: PackageMetadata = serde_json::from_str(json_str.as_ref())?;
+pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec<ModuleMetadata>> {
+    let package: PackageMetadata = serde_json::from_str(json_str.as_ref())?;
 
     // Extract the dependencies:
-    let Some(dependencies) = response.info.requires_dist else {
+    let Some(dependencies) = package.info.requires_dist else {
         return Ok(Vec::new()); // no dependencies found
     };
 
@@ -45,7 +45,11 @@ pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec
                 // Strip the "asimov-" prefix and "-module" suffix:
                 let mod_name = dep_name.strip_prefix("asimov-")?.strip_suffix("-module")?;
 
-                Some(mod_name.to_string())
+                Some(ModuleMetadata {
+                    name: mod_name.to_string(),
+                    version: package.info.version.clone(),
+                    r#type: ModuleType::Python,
+                })
             } else {
                 None
             }

@@ -3,9 +3,13 @@
 use crate::{registry, StandardOptions, SysexitsError};
 
 #[tokio::main]
-pub async fn list(_flags: &StandardOptions) -> Result<(), SysexitsError> {
+pub async fn list(flags: &StandardOptions) -> Result<(), SysexitsError> {
     for module in registry::fetch_modules().await? {
-        println!("{}", module);
+        if flags.verbose > 0 {
+            println!("{}\t{}\t{}", module.name, module.version, module.r#type);
+        } else {
+            println!("{}", module.name);
+        }
     }
     Ok(())
 }

@@ -6,9 +6,27 @@ pub mod pypi;
 pub mod rubygems;
 
 use crate::{registry, SysexitsError};
+use derive_more::Display;
 use tokio::task;
 
-pub async fn fetch_modules() -> Result<Vec<String>, SysexitsError> {
+#[derive(Clone, Debug)]
+pub struct ModuleMetadata {
+    pub name: String,
+    pub version: String,
+    pub r#type: ModuleType,
+}
+
+#[derive(Clone, Display, Debug)]
+pub enum ModuleType {
+    #[display("rust")]
+    Rust,
+    #[display("ruby")]
+    Ruby,
+    #[display("python")]
+    Python,
+}
+
+pub async fn fetch_modules() -> Result<Vec<ModuleMetadata>, SysexitsError> {
     // Spawn tasks to fetch module package metadata:
     let rust_task = task::spawn(async {
         let result = registry::crates::fetch_current_modules()
@@ -35,14 +53,14 @@ pub async fn fetch_modules() -> Result<Vec<String>, SysexitsError> {
     let ruby_modules = ruby_task.await??;
     let python_modules = python_task.await??;
 
-    let mut all_modules: Vec<String> = rust_modules
+    let mut all_modules: Vec<ModuleMetadata> = rust_modules
         .iter()
         .chain(ruby_modules.iter())
         .chain(python_modules.iter())
         .cloned()
         .collect();
 
-    all_modules.sort();
+    all_modules.sort_by_key(|m| m.name.clone());
 
     Ok(all_modules)
 }

@@ -1,6 +1,6 @@
 // This is free and unencumbered software released into the public domain.
 
-use super::http::http_client;
+use super::{http::http_client, ModuleMetadata, ModuleType};
 use reqwest::Error;
 use serde::{Deserialize, Serialize};
 
@@ -21,7 +21,7 @@ pub async fn fetch_modules(version: &str) -> Result<String, Error> {
 /// Parses JSON metadata for the `asimov-modules` gem and extracts module names
 /// from its runtime dependencies, removing the "asimov-" prefix and "-module"
 /// suffix.
-pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec<String>> {
+pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec<ModuleMetadata>> {
     let gem_info: GemInfo = serde_json::from_str(json_str.as_ref())?;
 
     let module_names = gem_info
@@ -41,7 +41,11 @@ pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec
                 // Strip the "asimov-" prefix and "-module" suffix:
                 let mod_name = dep_name.strip_prefix("asimov-")?.strip_suffix("-module")?;
 
-                Some(mod_name.to_string())
+                Some(ModuleMetadata {
+                    name: mod_name.to_string(),
+                    version: gem_info.version.clone(),
+                    r#type: ModuleType::Ruby,
+                })
             } else {
                 None
             }
@@ -53,6 +57,7 @@ pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec
 
 #[derive(Deserialize, Serialize, Debug)]
 struct GemInfo {
+    version: String,
     dependencies: Dependencies,
 }
 
