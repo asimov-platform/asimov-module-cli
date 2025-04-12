@@ -9,7 +9,11 @@ use crate::{StandardOptions, SysexitsError};
 
 #[tokio::main]
 pub async fn list(_flags: &StandardOptions) -> Result<(), SysexitsError> {
-    let rust_modules: Vec<String> = vec![]; // TODO
+    let rust_modules = crates::fetch_current_modules()
+        .await
+        .map(crates::extract_module_names)
+        .expect("Parse Rust modules")
+        .expect("Fetch Rust modules");
 
     let ruby_modules = rubygems::fetch_current_modules()
         .await
