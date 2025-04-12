@@ -3,5 +3,6 @@
 pub mod commands;
 pub mod features;
 pub mod options {}
+pub mod registry;
 
 use clientele::{StandardOptions, SysexitsError};

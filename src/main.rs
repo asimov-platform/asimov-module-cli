@@ -3,6 +3,7 @@
 #![deny(unsafe_code)]
 
 mod commands;
+mod registry;
 
 use clientele::{
     crates::clap::{Parser, Subcommand},
