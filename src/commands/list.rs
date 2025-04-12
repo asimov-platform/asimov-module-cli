@@ -6,26 +6,35 @@ mod pypi;
 mod rubygems;
 
 use crate::{StandardOptions, SysexitsError};
+use tokio::task;
 
 #[tokio::main]
 pub async fn list(_flags: &StandardOptions) -> Result<(), SysexitsError> {
-    let rust_modules = crates::fetch_current_modules()
-        .await
-        .map(crates::extract_module_names)
-        .expect("Parse Rust modules")
-        .expect("Fetch Rust modules");
+    // Spawn tasks to fetch module package metadata:
+    let rust_task = task::spawn(async {
+        let result = crates::fetch_current_modules()
+            .await
+            .expect("Fetch Rust module metadata");
+        crates::extract_module_names(result)
+    });
+    let ruby_task = task::spawn(async {
+        let result = rubygems::fetch_current_modules()
+            .await
+            .expect("Fetch Ruby module metadata");
+        rubygems::extract_module_names(result)
+    });
+    let python_task = task::spawn(async {
+        let result = pypi::fetch_current_modules()
+            .await
+            .expect("Fetch Python module metadata");
+        pypi::extract_module_names(result)
+    });
 
-    let ruby_modules = rubygems::fetch_current_modules()
-        .await
-        .map(rubygems::extract_module_names)
-        .expect("Parse Ruby modules")
-        .expect("Fetch Ruby modules");
-
-    let python_modules = pypi::fetch_current_modules()
-        .await
-        .map(pypi::extract_module_names)
-        .expect("Parse Python modules")
-        .expect("Fetch Python modules");
+    // Await all tasks; note the double ?? to handle both `JoinError` and the
+    // `Result` from the task:
+    let rust_modules = rust_task.await??;
+    let ruby_modules = ruby_task.await??;
+    let python_modules = python_task.await??;
 
     let mut all_modules: Vec<String> = rust_modules
         .iter()
