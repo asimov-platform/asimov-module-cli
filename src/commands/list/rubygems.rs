@@ -4,12 +4,12 @@ use super::http::http_client;
 use reqwest::Error;
 use serde::{Deserialize, Serialize};
 
-/// Fetches JSON metadata for the current version of the `asimov-modules` gem.
+/// Fetches JSON metadata for the current `asimov-modules` gem.
 pub async fn fetch_current_modules() -> Result<String, Error> {
     fetch_modules("25.0.0.dev.0").await // FIXME
 }
 
-/// Fetches JSON metadata for a specific version of the `asimov-modules` gem.
+/// Fetches JSON metadata for a specific `asimov-modules` gem version.
 pub async fn fetch_modules(version: &str) -> Result<String, Error> {
     let url = format!(
         "https://rubygems.org/api/v2/rubygems/asimov-modules/versions/{}.json",
@@ -29,20 +29,19 @@ pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec
         .runtime
         .iter()
         .filter_map(|dep| {
-            let name = &dep.name;
+            let dep_name = &dep.name;
 
             // Handle the special case of "asimov-module" separately:
-            if name == "asimov-module" {
+            if dep_name == "asimov-module" {
                 return None;
             }
 
             // Check if the dependency name has the expected prefix and suffix:
-            if name.starts_with("asimov-") && name.ends_with("-module") {
-                // Extract the middle part by removing prefix and suffix:
-                let prefix_len = "asimov-".len();
-                let suffix_len = "-module".len();
-                let module_name = &name[prefix_len..name.len() - suffix_len];
-                Some(module_name.to_string())
+            if dep_name.starts_with("asimov-") && dep_name.ends_with("-module") {
+                // Strip the "asimov-" prefix and "-module" suffix:
+                let mod_name = dep_name.strip_prefix("asimov-")?.strip_suffix("-module")?;
+
+                Some(mod_name.to_string())
             } else {
                 None
             }
@@ -53,9 +52,8 @@ pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-struct Dependency {
-    name: String,
-    requirements: String,
+struct GemInfo {
+    dependencies: Dependencies,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -65,8 +63,9 @@ struct Dependencies {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-struct GemInfo {
-    dependencies: Dependencies,
+struct Dependency {
+    name: String,
+    requirements: String,
 }
 
 #[cfg(test)]
@@ -74,7 +73,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_extract_asimov_module_names() {
+    fn test_extract_module_names() {
         let json = r#"{
             "dependencies": {
                 "development": [
