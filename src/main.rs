@@ -33,10 +33,35 @@ enum Command {
     },
 
     /// TBD
+    Disable {
+        /// The names of the modules to disable
+        names: Vec<String>,
+    },
+
+    /// TBD
+    Enable {
+        /// The names of the modules to enable
+        names: Vec<String>,
+    },
+
+    /// TBD
     #[clap(alias = "which")]
     Find {
         /// The name of the module to find
         name: String,
+    },
+
+    /// TBD
+    #[clap(alias = "show")]
+    Inspect {
+        /// The name of the module to inspect
+        name: String,
+    },
+
+    /// TBD
+    Install {
+        /// The names of the modules to install
+        names: Vec<String>,
     },
 
     /// TBD
@@ -49,6 +74,12 @@ enum Command {
     /// TBD
     #[clap(alias = "ls")]
     List {},
+
+    /// TBD
+    Uninstall {
+        /// The names of the modules to uninstall
+        names: Vec<String>,
+    },
 }
 
 pub fn main() -> SysexitsError {
@@ -83,9 +114,14 @@ pub fn main() -> SysexitsError {
     // Execute the given command:
     let result = match options.command.unwrap() {
         Command::Browse { name } => commands::browse(name, &options.flags),
+        Command::Disable { names } => commands::disable(names, &options.flags),
+        Command::Enable { names } => commands::enable(names, &options.flags),
         Command::Find { name } => commands::find(name, &options.flags),
+        Command::Inspect { name } => commands::inspect(name, &options.flags),
+        Command::Install { names } => commands::install(names, &options.flags),
         Command::Link { name } => commands::link(name, &options.flags),
         Command::List {} => commands::list(&options.flags),
+        Command::Uninstall { names } => commands::uninstall(names, &options.flags),
     };
 
     match result {
