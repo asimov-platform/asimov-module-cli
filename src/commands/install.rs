@@ -4,6 +4,7 @@ use crate::{
     registry::{self, ModuleMetadata},
     StandardOptions, SysexitsError,
 };
+use asimov_env::tools::{cargo, python, ruby};
 use std::{io::ErrorKind, process::Command};
 
 #[tokio::main]
@@ -34,13 +35,15 @@ pub async fn install(
         let package_name = format!("asimov-{}-module", module.name);
 
         let result = match module.r#type {
-            Rust => Command::new("cargo")
+            Rust => Command::new(cargo().unwrap().as_ref())
                 .args(["install", &package_name])
                 .status(),
-            Ruby => Command::new("gem")
+            Ruby => Command::new(ruby().unwrap().as_ref())
+                .args(["-S", "gem"])
                 .args(["install", &package_name])
                 .status(),
-            Python => Command::new("pip3")
+            Python => Command::new(python().unwrap().as_ref())
+                .args(["-m", "pip"])
                 .args(["install", &package_name])
                 .status(),
         };
