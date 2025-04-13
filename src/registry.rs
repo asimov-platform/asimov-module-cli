@@ -27,6 +27,15 @@ pub enum ModuleType {
     Python,
 }
 
+pub fn is_enabled(module_name: &str) -> bool {
+    is_installed(module_name) // TODO
+}
+
+pub fn is_installed(module_name: &str) -> bool {
+    let command_name = format!("{}-module", module_name);
+    clientele::SubcommandsProvider::find("asimov-", &command_name).is_some()
+}
+
 pub async fn fetch_module(module_name: &str) -> Option<ModuleMetadata> {
     let modules = registry::fetch_modules().await.ok()?;
     let module = modules.into_iter().find(|m| m.name == module_name);
