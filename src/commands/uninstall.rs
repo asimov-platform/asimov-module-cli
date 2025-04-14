@@ -31,12 +31,14 @@ pub async fn uninstall(
         }
     }
 
+    let venv_verbosity = if flags.debug { flags.verbose + 1 } else { 0 };
+
     for module in modules_to_uninstall {
         use registry::ModuleType::*;
         let package_name = format!("asimov-{}-module", module.name);
 
         if flags.verbose > 1 {
-            cprintln!("<w>»</> Uninstalling the module `{}`...", module.name,);
+            cprintln!("<s><c>»</></> Uninstalling the module `{}`...", module.name,);
         }
 
         let result = match module.r#type {
@@ -49,7 +51,7 @@ pub async fn uninstall(
                     rbenv.create()?;
                 }
                 rbenv
-                    .gem_command("uninstall", flags.verbose)
+                    .gem_command("uninstall", venv_verbosity)
                     .args(["--all", "--executables", &package_name])
                     .status()
             }
@@ -58,7 +60,7 @@ pub async fn uninstall(
                 if !venv.exists() {
                     venv.create()?;
                 }
-                venv.pip_command("uninstall", flags.verbose)
+                venv.pip_command("uninstall", venv_verbosity)
                     .args(["--yes", &package_name])
                     .status()
             }
@@ -87,7 +89,7 @@ pub async fn uninstall(
             }
             Ok(_) => {
                 if flags.verbose > 0 {
-                    cprintln!("<g>✓</> Uninstalled the module `{}`.", module.name);
+                    cprintln!("<s><g>✓</></> Uninstalled the module `{}`.", module.name);
                 }
             }
         }

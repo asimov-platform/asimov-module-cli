@@ -31,13 +31,15 @@ pub async fn install(
         }
     }
 
+    let venv_verbosity = if flags.debug { flags.verbose + 1 } else { 0 };
+
     for module in modules_to_install {
         use registry::ModuleType::*;
         let package_name = format!("asimov-{}-module", module.name);
 
         if flags.verbose > 1 {
             cprintln!(
-                "<w>»</> Installing the module `{}` from {}...",
+                "<s><c>»</></> Installing the module `{}` from {}...",
                 module.name,
                 module.r#type.origin(),
             );
@@ -53,7 +55,7 @@ pub async fn install(
                     rbenv.create()?;
                 }
                 rbenv
-                    .gem_command("install", flags.verbose)
+                    .gem_command("install", venv_verbosity)
                     .args(["--prerelease", "--no-document", &package_name])
                     .status()
             }
@@ -62,7 +64,7 @@ pub async fn install(
                 if !venv.exists() {
                     venv.create()?;
                 }
-                venv.pip_command("install", flags.verbose)
+                venv.pip_command("install", venv_verbosity)
                     .args(["--pre", &package_name])
                     .status()
             }
@@ -92,7 +94,7 @@ pub async fn install(
             Ok(_) => {
                 if flags.verbose > 0 {
                     cprintln!(
-                        "<g>✓</> Installed the module `{}` from {}.",
+                        "<s><g>✓</></> Installed the module `{}` from {}.",
                         module.name,
                         module.r#type.origin(),
                     );
