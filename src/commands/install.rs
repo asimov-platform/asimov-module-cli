@@ -4,7 +4,10 @@ use crate::{
     registry::{self, ModuleMetadata},
     StandardOptions, SysexitsError,
 };
-use asimov_env::tools::{cargo, python, ruby};
+use asimov_env::{
+    paths::{python_env, ruby_env},
+    tools::{cargo, python, ruby},
+};
 use std::{io::ErrorKind, process::Command};
 
 #[tokio::main]
@@ -38,14 +41,41 @@ pub async fn install(
             Rust => Command::new(cargo().unwrap().as_ref())
                 .args(["install", &package_name])
                 .status(),
-            Ruby => Command::new(ruby().unwrap().as_ref())
-                .args(["-S", "gem"])
-                .args(["install", &package_name])
-                .status(),
-            Python => Command::new(python().unwrap().as_ref())
-                .args(["-m", "pip"])
-                .args(["install", &package_name])
-                .status(),
+            Ruby => {
+                let rbenv = ruby_env();
+                if !rbenv.is_dir() {
+                    // Create the directory if it doesn't exist:
+                    std::fs::create_dir_all(&rbenv)?;
+                }
+                Command::new(ruby().unwrap().as_ref())
+                    .args(["-S", "gem"])
+                    .args([
+                        "install",
+                        "--install-dir",
+                        &rbenv.to_string_lossy(),
+                        "--prerelease",
+                        "--no-document",
+                        &package_name,
+                    ])
+                    .status()
+            }
+            Python => {
+                let venv = python_env();
+                if !venv.is_dir() {
+                    // Create the directory if it doesn't exist:
+                    std::fs::create_dir_all(&venv)?;
+
+                    // Create the virtual environment if it doesn't exist:
+                    Command::new(python().unwrap().as_ref())
+                        .args(["-m", "venv", &venv.to_string_lossy()])
+                        .status()?;
+                }
+                Command::new(venv.join("bin/python3"))
+                    .args(["-m", "pip"])
+                    .args(["install", &package_name])
+                    .env("VIRTUAL_ENV", venv.as_os_str())
+                    .status()
+            }
         };
 
         match result {
