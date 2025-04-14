@@ -27,6 +27,17 @@ pub enum ModuleType {
     Python,
 }
 
+impl ModuleType {
+    pub fn origin(&self) -> &'static str {
+        use ModuleType::*;
+        match self {
+            Rust => "Cargo",
+            Ruby => "RubyGems",
+            Python => "PyPI",
+        }
+    }
+}
+
 pub fn is_enabled(module_name: &str) -> bool {
     is_installed(module_name) // TODO
 }

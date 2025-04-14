@@ -5,6 +5,7 @@ use crate::{
     StandardOptions, SysexitsError,
 };
 use asimov_env::tools::{cargo, PythonEnv, RubyEnv};
+use color_print::cprintln;
 use std::{io::ErrorKind, process::Command};
 
 #[tokio::main]
@@ -33,6 +34,10 @@ pub async fn uninstall(
     for module in modules_to_uninstall {
         use registry::ModuleType::*;
         let package_name = format!("asimov-{}-module", module.name);
+
+        if flags.verbose > 1 {
+            cprintln!("<w>»</> Uninstalling the module `{}`...", module.name,);
+        }
 
         let result = match module.r#type {
             Rust => Command::new(cargo().unwrap().as_ref())
@@ -80,7 +85,11 @@ pub async fn uninstall(
                 );
                 return Err(SysexitsError::EX_SOFTWARE);
             }
-            Ok(_) => {}
+            Ok(_) => {
+                if flags.verbose > 0 {
+                    cprintln!("<g>✓</> Uninstalled the module `{}`.", module.name);
+                }
+            }
         }
     }
 

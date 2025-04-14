@@ -5,6 +5,7 @@ use crate::{
     StandardOptions, SysexitsError,
 };
 use asimov_env::tools::{cargo, PythonEnv, RubyEnv};
+use color_print::cprintln;
 use std::{io::ErrorKind, process::Command};
 
 #[tokio::main]
@@ -33,6 +34,14 @@ pub async fn install(
     for module in modules_to_install {
         use registry::ModuleType::*;
         let package_name = format!("asimov-{}-module", module.name);
+
+        if flags.verbose > 1 {
+            cprintln!(
+                "<w>»</> Installing the module `{}` from {}...",
+                module.name,
+                module.r#type.origin(),
+            );
+        }
 
         let result = match module.r#type {
             Rust => Command::new(cargo().unwrap().as_ref())
@@ -80,7 +89,15 @@ pub async fn install(
                 );
                 return Err(SysexitsError::EX_SOFTWARE);
             }
-            Ok(_) => {}
+            Ok(_) => {
+                if flags.verbose > 0 {
+                    cprintln!(
+                        "<g>✓</> Installed the module `{}` from {}.",
+                        module.name,
+                        module.r#type.origin(),
+                    );
+                }
+            }
         }
     }
 
