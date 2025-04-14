@@ -4,16 +4,13 @@ use crate::{
     registry::{self, ModuleMetadata},
     StandardOptions, SysexitsError,
 };
-use asimov_env::{
-    paths::{python_env, ruby_env},
-    tools::{cargo, python, ruby},
-};
+use asimov_env::tools::{cargo, PythonEnv, RubyEnv};
 use std::{io::ErrorKind, process::Command};
 
 #[tokio::main]
 pub async fn install(
     module_names: Vec<String>,
-    _flags: &StandardOptions,
+    flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
     let mut modules_to_install: Vec<ModuleMetadata> = vec![];
 
@@ -42,38 +39,22 @@ pub async fn install(
                 .args(["install", &package_name])
                 .status(),
             Ruby => {
-                let rbenv = ruby_env();
-                if !rbenv.is_dir() {
-                    // Create the directory if it doesn't exist:
-                    std::fs::create_dir_all(&rbenv)?;
+                let rbenv = RubyEnv::default();
+                if !rbenv.exists() {
+                    rbenv.create()?;
                 }
-                Command::new(ruby().unwrap().as_ref())
-                    .args(["-S", "gem"])
-                    .args([
-                        "install",
-                        "--install-dir",
-                        &rbenv.to_string_lossy(),
-                        "--prerelease",
-                        "--no-document",
-                        &package_name,
-                    ])
+                rbenv
+                    .gem_command("install", flags.verbose)
+                    .args(["--prerelease", "--no-document", &package_name])
                     .status()
             }
             Python => {
-                let venv = python_env();
-                if !venv.is_dir() {
-                    // Create the directory if it doesn't exist:
-                    std::fs::create_dir_all(&venv)?;
-
-                    // Create the virtual environment if it doesn't exist:
-                    Command::new(python().unwrap().as_ref())
-                        .args(["-m", "venv", &venv.to_string_lossy()])
-                        .status()?;
+                let venv = PythonEnv::default();
+                if !venv.exists() {
+                    venv.create()?;
                 }
-                Command::new(venv.join("bin/python3"))
-                    .args(["-m", "pip"])
-                    .args(["install", &package_name])
-                    .env("VIRTUAL_ENV", venv.as_os_str())
+                venv.pip_command("install", flags.verbose)
+                    .args(["--pre", &package_name])
                     .status()
             }
         };

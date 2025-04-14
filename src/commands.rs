@@ -26,3 +26,6 @@ pub use list::*;
 
 mod uninstall;
 pub use uninstall::*;
+
+mod upgrade;
+pub use upgrade::*;

@@ -1,19 +1,87 @@
 // This is free and unencumbered software released into the public domain.
 
-use crate::{registry, StandardOptions, SysexitsError};
+use crate::{
+    registry::{self, ModuleMetadata},
+    StandardOptions, SysexitsError,
+};
+use asimov_env::tools::{cargo, PythonEnv, RubyEnv};
+use std::{io::ErrorKind, process::Command};
 
-pub fn uninstall(module_names: Vec<String>, _flags: &StandardOptions) -> Result<(), SysexitsError> {
-    let mut modules_to_uninstall: Vec<String> = vec![];
+#[tokio::main]
+pub async fn uninstall(
+    module_names: Vec<String>,
+    flags: &StandardOptions,
+) -> Result<(), SysexitsError> {
+    let mut modules_to_uninstall: Vec<ModuleMetadata> = vec![];
 
     for module_name in module_names {
-        if !registry::is_installed(&module_name) {
-            continue; // skip not installed modules
+        // if !registry::is_installed(&module_name) {
+        //     continue; // skip not installed modules
+        // }
+
+        match registry::fetch_module(&module_name).await {
+            Some(module) => {
+                modules_to_uninstall.push(module.clone());
+            }
+            None => {
+                eprintln!("unknown module: {}", module_name);
+                return Err(SysexitsError::EX_UNAVAILABLE);
+            }
         }
-        modules_to_uninstall.push(module_name.clone());
     }
 
-    for _module_name in modules_to_uninstall {
-        // TODO
+    for module in modules_to_uninstall {
+        use registry::ModuleType::*;
+        let package_name = format!("asimov-{}-module", module.name);
+
+        let result = match module.r#type {
+            Rust => Command::new(cargo().unwrap().as_ref())
+                .args(["uninstall", &package_name])
+                .status(),
+            Ruby => {
+                let rbenv = RubyEnv::default();
+                if !rbenv.exists() {
+                    rbenv.create()?;
+                }
+                rbenv
+                    .gem_command("uninstall", flags.verbose)
+                    .args(["--all", "--executables", &package_name])
+                    .status()
+            }
+            Python => {
+                let venv = PythonEnv::default();
+                if !venv.exists() {
+                    venv.create()?;
+                }
+                venv.pip_command("uninstall", flags.verbose)
+                    .args(["--yes", &package_name])
+                    .status()
+            }
+        };
+
+        match result {
+            Err(error) if error.kind() == ErrorKind::NotFound => {
+                eprintln!(
+                    "failed to uninstall module `{}`: missing {} environment",
+                    module.name,
+                    module.r#type.to_string()
+                );
+                return Err(SysexitsError::EX_UNAVAILABLE);
+            }
+            Err(error) => {
+                eprintln!("failed to uninstall module `{}`: {}", module.name, error);
+                return Err(SysexitsError::EX_OSERR);
+            }
+            Ok(status) if !status.success() => {
+                eprintln!(
+                    "failed to uninstall module `{}`: exit code {}",
+                    module.name,
+                    status.code().unwrap_or_default()
+                );
+                return Err(SysexitsError::EX_SOFTWARE);
+            }
+            Ok(_) => {}
+        }
     }
 
     Ok(())
