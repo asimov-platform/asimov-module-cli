@@ -103,7 +103,8 @@ mod tests {
         }"#;
 
         let result = extract_module_names(json).unwrap();
-        assert_eq!(result, vec!["mlx", "gpu", "cpu"]);
+        let names: Vec<_> = result.iter().map(|m| m.name.clone()).collect();
+        assert_eq!(names, vec!["mlx", "gpu", "cpu"]);
     }
 
     #[test]
