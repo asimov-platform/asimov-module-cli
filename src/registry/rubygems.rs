@@ -81,6 +81,7 @@ mod tests {
     #[test]
     fn test_extract_module_names() {
         let json = r#"{
+            "version": "0.0.0",
             "dependencies": {
                 "development": [
                     {
@@ -129,7 +130,11 @@ mod tests {
             }
         }"#;
 
-        let result = extract_module_names(json).unwrap();
+        let result: Vec<String> = extract_module_names(json)
+            .unwrap()
+            .iter()
+            .map(|m| m.name.clone())
+            .collect();
         assert_eq!(
             result,
             vec![

@@ -4,9 +4,12 @@ use crate::{
     registry::{self, ModuleMetadata},
     StandardOptions, SysexitsError,
 };
-use asimov_env::tools::{cargo, PythonEnv, RubyEnv};
-use color_print::cprintln;
-use std::{io::ErrorKind, process::Command};
+use asimov_env::{
+    env::Env,
+    envs::{CargoEnv, PythonEnv, RubyEnv},
+};
+use color_print::{ceprintln, cprintln};
+use std::io::ErrorKind;
 
 #[tokio::main]
 pub async fn uninstall(
@@ -22,10 +25,12 @@ pub async fn uninstall(
 
         match registry::fetch_module(&module_name).await {
             Some(module) => {
-                modules_to_uninstall.push(module.clone());
+                if module.is_installed()? {
+                    modules_to_uninstall.push(module.clone());
+                }
             }
             None => {
-                eprintln!("unknown module: {}", module_name);
+                ceprintln!("<s><r>error:</></> unknown module: {}", module_name);
                 return Err(SysexitsError::EX_UNAVAILABLE);
             }
         }
@@ -35,53 +40,37 @@ pub async fn uninstall(
 
     for module in modules_to_uninstall {
         use registry::ModuleType::*;
-        let package_name = format!("asimov-{}-module", module.name);
 
         if flags.verbose > 1 {
             cprintln!("<s><c>»</></> Uninstalling the module `{}`...", module.name,);
         }
 
         let result = match module.r#type {
-            Rust => Command::new(cargo().unwrap().as_ref())
-                .args(["uninstall", &package_name])
-                .status(),
-            Ruby => {
-                let rbenv = RubyEnv::default();
-                if !rbenv.exists() {
-                    rbenv.create()?;
-                }
-                rbenv
-                    .gem_command("uninstall", venv_verbosity)
-                    .args(["--all", "--executables", &package_name])
-                    .status()
-            }
-            Python => {
-                let venv = PythonEnv::default();
-                if !venv.exists() {
-                    venv.create()?;
-                }
-                venv.pip_command("uninstall", venv_verbosity)
-                    .args(["--yes", &package_name])
-                    .status()
-            }
+            Rust => CargoEnv::default().uninstall_module(&module.name, Some(venv_verbosity)),
+            Ruby => RubyEnv::default().uninstall_module(&module.name, Some(venv_verbosity)),
+            Python => PythonEnv::default().uninstall_module(&module.name, Some(venv_verbosity)),
         };
 
         match result {
             Err(error) if error.kind() == ErrorKind::NotFound => {
-                eprintln!(
-                    "failed to uninstall module `{}`: missing {} environment",
+                ceprintln!(
+                    "<s><r>error:</></> failed to uninstall module `{}`: missing {} environment",
                     module.name,
                     module.r#type.to_string()
                 );
                 return Err(SysexitsError::EX_UNAVAILABLE);
             }
             Err(error) => {
-                eprintln!("failed to uninstall module `{}`: {}", module.name, error);
+                ceprintln!(
+                    "<s><r>error:</></> failed to uninstall module `{}`: {}",
+                    module.name,
+                    error
+                );
                 return Err(SysexitsError::EX_OSERR);
             }
             Ok(status) if !status.success() => {
-                eprintln!(
-                    "failed to uninstall module `{}`: exit code {}",
+                ceprintln!(
+                    "<s><r>error:</></> failed to uninstall module `{}`: exit code {}",
                     module.name,
                     status.code().unwrap_or_default()
                 );

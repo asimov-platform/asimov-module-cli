@@ -6,6 +6,10 @@ pub mod pypi;
 pub mod rubygems;
 
 use crate::{registry, SysexitsError};
+use asimov_env::{
+    env::Env,
+    envs::{PythonEnv, RubyEnv},
+};
 use derive_more::Display;
 use tokio::task;
 
@@ -15,6 +19,19 @@ pub struct ModuleMetadata {
     pub version: String,
     pub r#type: ModuleType,
     pub url: String,
+}
+
+impl ModuleMetadata {
+    pub fn is_installed(&self) -> std::io::Result<bool> {
+        match self.r#type {
+            ModuleType::Rust => {
+                let command_name = format!("{}-module", self.name); // FIXME
+                Ok(clientele::SubcommandsProvider::find("asimov-", &command_name).is_some())
+            }
+            ModuleType::Ruby => RubyEnv::default().is_module_installed(&self.name),
+            ModuleType::Python => PythonEnv::default().is_module_installed(&self.name),
+        }
+    }
 }
 
 #[derive(Clone, Display, Debug)]
@@ -38,13 +55,8 @@ impl ModuleType {
     }
 }
 
-pub fn is_enabled(module_name: &str) -> bool {
-    is_installed(module_name) // TODO
-}
-
-pub fn is_installed(module_name: &str) -> bool {
-    let command_name = format!("{}-module", module_name);
-    clientele::SubcommandsProvider::find("asimov-", &command_name).is_some()
+pub fn is_enabled(_module_name: &str) -> bool {
+    true // TODO
 }
 
 pub async fn fetch_module(module_name: &str) -> Option<ModuleMetadata> {

@@ -5,6 +5,7 @@ use crate::{StandardOptions, SysexitsError};
 pub fn find(module_name: impl AsRef<str>, _flags: &StandardOptions) -> Result<(), SysexitsError> {
     let module_name = module_name.as_ref();
     let command_name = format!("{}-module", module_name);
+
     match clientele::SubcommandsProvider::find("asimov-", &command_name) {
         Some(command) => {
             println!("{}", command.path.display());
