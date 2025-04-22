@@ -8,6 +8,7 @@ pub async fn browse(
     _flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
     let module_name = module_name.as_ref();
+
     match registry::fetch_module(module_name).await {
         Some(module) => {
             open::that(module.url)?;

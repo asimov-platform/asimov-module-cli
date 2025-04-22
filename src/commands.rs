@@ -1,5 +1,7 @@
 // This is free and unencumbered software released into the public domain.
 
+#![allow(unused)]
+
 mod browse;
 pub use browse::*;
 
@@ -28,4 +30,4 @@ mod uninstall;
 pub use uninstall::*;
 
 mod upgrade;
-//pub use upgrade::*;
+pub use upgrade::*;

@@ -25,7 +25,7 @@ struct Options {
 
 #[derive(Debug, Subcommand)]
 enum Command {
-    /// TBD
+    /// Open the module's package page in a web browser
     #[clap(alias = "open")]
     Browse {
         /// The name of the module to browse
@@ -33,18 +33,21 @@ enum Command {
     },
 
     /// TBD
+    #[cfg(feature = "unstable")]
     Disable {
         /// The names of the modules to disable
         names: Vec<String>,
     },
 
     /// TBD
+    #[cfg(feature = "unstable")]
     Enable {
         /// The names of the modules to enable
         names: Vec<String>,
     },
 
     /// TBD
+    #[cfg(feature = "unstable")]
     #[clap(alias = "which")]
     Find {
         /// The name of the module to find
@@ -52,32 +55,41 @@ enum Command {
     },
 
     /// TBD
+    #[cfg(feature = "unstable")]
     #[clap(alias = "show")]
     Inspect {
         /// The name of the module to inspect
         name: String,
     },
 
-    /// TBD
+    /// Install an available module locally
     Install {
         /// The names of the modules to install
         names: Vec<String>,
     },
 
-    /// TBD
+    /// Print the module's package link
     #[clap(alias = "url")]
     Link {
         /// The name of the module to link to
         name: String,
     },
 
-    /// TBD
+    /// List all available and/or installed modules
     #[clap(alias = "ls")]
     List {},
 
-    /// TBD
+    /// Uninstall a currently installed module
     Uninstall {
         /// The names of the modules to uninstall
+        names: Vec<String>,
+    },
+
+    /// TBD
+    #[cfg(feature = "unstable")]
+    #[clap(alias = "update")]
+    Upgrade {
+        /// The names of the modules to upgrade
         names: Vec<String>,
     },
 }
@@ -114,14 +126,20 @@ pub fn main() -> SysexitsError {
     // Execute the given command:
     let result = match options.command.unwrap() {
         Command::Browse { name } => commands::browse(name, &options.flags),
+        #[cfg(feature = "unstable")]
         Command::Disable { names } => commands::disable(names, &options.flags),
+        #[cfg(feature = "unstable")]
         Command::Enable { names } => commands::enable(names, &options.flags),
+        #[cfg(feature = "unstable")]
         Command::Find { name } => commands::find(name, &options.flags),
+        #[cfg(feature = "unstable")]
         Command::Inspect { name } => commands::inspect(name, &options.flags),
         Command::Install { names } => commands::install(names, &options.flags),
         Command::Link { name } => commands::link(name, &options.flags),
         Command::List {} => commands::list(&options.flags),
         Command::Uninstall { names } => commands::uninstall(names, &options.flags),
+        #[cfg(feature = "unstable")]
+        Command::Upgrade { names } => commands::upgrade(names, &options.flags),
     };
 
     match result {

@@ -119,8 +119,11 @@ mod tests {
             "rust_version": "1.81"
         }"#;
 
-        let result = extract_module_names(json).unwrap();
-        let names: Vec<_> = result.iter().map(|m| m.name.clone()).collect();
-        assert_eq!(names, vec!["foobar"]);
+        let result: Vec<String> = extract_module_names(json)
+            .unwrap()
+            .iter()
+            .map(|m| m.name.clone())
+            .collect();
+        assert_eq!(result, vec!["foobar"]);
     }
 }
