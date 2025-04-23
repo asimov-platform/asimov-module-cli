@@ -50,7 +50,7 @@ jobs:
         with:
           target: ${{ matrix.target }}
           artifact-name: ${{ matrix.artifact }}
-          artifact-prefix: module-cli
+          artifact-prefix: asimov-module-cli
           binary-name: asimov-module
           binary-extension: ${{ matrix.extension }}
           strip-artifact: ${{ matrix.strip || 'false' }}
