@@ -21,7 +21,7 @@
 #### Installation via Cargo
 
 ```bash
-cargo install asimov-module-cli --version 25.0.0-dev.2
+cargo install asimov-module-cli --version 25.0.0-dev.3
 ```
 
 ## 👉 Examples
