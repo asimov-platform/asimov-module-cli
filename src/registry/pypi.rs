@@ -1,8 +1,8 @@
 // This is free and unencumbered software released into the public domain.
 
 use super::{http::http_client, ModuleMetadata, ModuleType};
+use known_types_pypi::PackageMetadata;
 use reqwest::Error;
-use serde::{Deserialize, Serialize};
 
 /// Fetches JSON metadata for the current `asimov-modules` package.
 pub async fn fetch_current_modules() -> Result<String, Error> {
@@ -58,28 +58,6 @@ pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec
         .collect();
 
     Ok(module_names)
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct PackageMetadata {
-    info: PackageInfo,
-    #[serde(default)]
-    urls: Vec<PackageUrl>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct PackageInfo {
-    name: String,
-    version: String,
-    #[serde(default)]
-    requires_dist: Option<Vec<String>>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct PackageUrl {
-    filename: String,
-    packagetype: String,
-    url: String,
 }
 
 #[cfg(test)]

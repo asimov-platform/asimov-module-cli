@@ -1,8 +1,8 @@
 // This is free and unencumbered software released into the public domain.
 
 use super::{http::http_client, ModuleMetadata, ModuleType};
+use known_types_rubygems::GemInfo;
 use reqwest::Error;
-use serde::{Deserialize, Serialize};
 
 /// Fetches JSON metadata for the current `asimov-modules` gem.
 pub async fn fetch_current_modules() -> Result<String, Error> {
@@ -54,24 +54,6 @@ pub fn extract_module_names(json_str: impl AsRef<str>) -> serde_json::Result<Vec
         .collect();
 
     Ok(module_names)
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct GemInfo {
-    version: String,
-    dependencies: Dependencies,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct Dependencies {
-    development: Vec<Dependency>,
-    runtime: Vec<Dependency>,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct Dependency {
-    name: String,
-    requirements: String,
 }
 
 #[cfg(test)]
