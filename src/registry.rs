@@ -1,6 +1,7 @@
 // This is free and unencumbered software released into the public domain.
 
 pub mod crates;
+pub mod github;
 pub mod http;
 pub mod pypi;
 pub mod rubygems;

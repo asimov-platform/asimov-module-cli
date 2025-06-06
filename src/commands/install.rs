@@ -9,7 +9,11 @@ use asimov_env::{
     envs::{CargoEnv, PythonEnv, RubyEnv},
 };
 use color_print::{ceprintln, cprintln};
-use std::io::ErrorKind;
+use serde::Deserialize;
+use std::{
+    io::ErrorKind,
+    process::{Command, ExitStatus},
+};
 
 #[tokio::main]
 pub async fn install(
@@ -50,7 +54,41 @@ pub async fn install(
         }
 
         let result = match module.r#type {
-            Rust => CargoEnv::default().install_module(&module.name, Some(venv_verbosity)),
+            Rust => {
+                // First try installing from Cargo
+                let cargo_result =
+                    CargoEnv::default().install_module(&module.name, Some(venv_verbosity));
+
+                // If Cargo installation fails, try GitHub releases
+                match cargo_result {
+                    Ok(status) if status.success() => Ok(status),
+                    _ => {
+                        if flags.verbose > 1 {
+                            cprintln!("<s><c>»</></> Cargo installation failed, trying GitHub releases...");
+                        }
+
+                        match crate::registry::github::try_install_from_github(
+                            &module.name,
+                            venv_verbosity,
+                        )
+                        .await
+                        {
+                            Ok(true) => {
+                                // Create a fake successful status - use Command to get a real ExitStatus
+                                let fake_success =
+                                    Command::new("true").status().unwrap_or_else(|_| {
+                                        // Fallback if 'true' command isn't available
+                                        Command::new("echo")
+                                            .status()
+                                            .expect("echo command should be available")
+                                    });
+                                Ok(fake_success)
+                            }
+                            Ok(false) | Err(_) => cargo_result, // Fall back to original error
+                        }
+                    }
+                }
+            }
             Ruby => RubyEnv::default().install_module(&module.name, Some(venv_verbosity)),
             Python => PythonEnv::default().install_module(&module.name, Some(venv_verbosity)),
         };
