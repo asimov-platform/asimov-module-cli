@@ -9,7 +9,7 @@ use asimov_env::{
     envs::{CargoEnv, PythonEnv, RubyEnv},
 };
 use color_print::{ceprintln, cprintln};
-use std::{io::ErrorKind, process::Command};
+use std::io::ErrorKind;
 
 #[tokio::main]
 pub async fn install(
