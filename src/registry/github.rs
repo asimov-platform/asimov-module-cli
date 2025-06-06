@@ -252,42 +252,89 @@ async fn install_binaries(src_asset: &Path, verbosity: u8) -> Result<(), Box<dyn
 
     let src_dir = src_asset.parent().ok_or("Invalid source path")?;
 
-    let output = Command::new("tar")
-        .args(["-xzf", src_asset.to_str().unwrap()])
-        .current_dir(src_dir)
-        .output()?;
+    let file = std::fs::File::open(src_asset)?;
+    let reader = std::io::BufReader::new(file);
 
-    if !output.status.success() {
-        return Err("Failed to extract tar.gz file".into());
+    if src_asset.to_string_lossy().ends_with(".tar.gz") {
+        use flate2::read::GzDecoder;
+        use tar::Archive;
+        Archive::new(GzDecoder::new(reader))
+            .entries()?
+            .into_iter()
+            .try_for_each(|f| {
+                let mut f = f?;
+                f.unpack_in(&install_dir).and_then(|_| {
+                    // Make executable on Unix systems
+                    let name = f.path()?.file_name().unwrap().to_owned();
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        std::fs::set_permissions(
+                            &install_dir.join(&name),
+                            Permissions::from_mode(0o755),
+                        )?;
+                    }
+                    if verbosity > 0 {
+                        cprintln!(
+                            "<s><g>✓</></> Installed binary `{}`",
+                            name.to_string_lossy()
+                        );
+                    }
+                    Ok(())
+                })
+            })?;
+    } else if src_asset.to_string_lossy().ends_with(".zip") {
+        use zip::ZipArchive;
+
+        let mut archive = ZipArchive::new(reader)?;
+        for i in 0..archive.len() {
+            let mut file = archive.by_index(i)?;
+            let outpath = src_dir.join(file.name());
+
+            if file.name().ends_with('/') {
+                std::fs::create_dir_all(&outpath)?;
+            } else {
+                if let Some(parent) = outpath.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                let mut out = std::fs::File::create(&outpath)?;
+                std::io::copy(&mut file, &mut out)?;
+            }
+        }
+    } else {
+        return Err("Unsupported format".into());
     }
 
-    let mut read_dir = tokio::fs::read_dir(src_dir).await?;
+    // let mut read_dir = tokio::fs::read_dir(src_dir).await?;
 
-    while let Some(file) = read_dir.next_entry().await? {
-        let path = file.path();
-        let Some(name) = path.file_name() else {
-            continue;
-        };
-        if name.to_string_lossy().ends_with("tar.gz") {
-            continue;
-        }
-        let target_path = install_dir.join(name);
-        tokio::fs::copy(&path, &target_path).await?;
+    // while let Some(file) = read_dir.next_entry().await? {
+    //     let path = file.path();
+    //     let Some(name) = path.file_name() else {
+    //         continue;
+    //     };
+    //     if path.to_string_lossy().ends_with(".tar.gz") {
+    //         continue;
+    //     }
+    //     if path.to_string_lossy().ends_with(".zip") {
+    //         continue;
+    //     }
+    //     let target_path = install_dir.join(name);
+    //     tokio::fs::copy(&path, &target_path).await?;
 
-        // Make executable on Unix systems
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            tokio::fs::set_permissions(&target_path, Permissions::from_mode(0o755)).await?;
-        }
+    //     // Make executable on Unix systems
+    //     #[cfg(unix)]
+    //     {
+    //         use std::os::unix::fs::PermissionsExt;
+    //         tokio::fs::set_permissions(&target_path, Permissions::from_mode(0o755)).await?;
+    //     }
 
-        if verbosity > 0 {
-            cprintln!(
-                "<s><g>✓</></> Installed binary `{}`",
-                name.to_string_lossy()
-            );
-        }
-    }
+    //     if verbosity > 0 {
+    //         cprintln!(
+    //             "<s><g>✓</></> Installed binary `{}`",
+    //             name.to_string_lossy()
+    //         );
+    //     }
+    // }
 
     Ok(())
 }
