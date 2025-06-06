@@ -3,12 +3,7 @@
 use color_print::cprintln;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use std::{
-    error::Error,
-    fs::Permissions,
-    path::Path,
-    process::{Command, ExitStatus},
-};
+use std::{error::Error, fs::Permissions, path::Path, process::ExitStatus};
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 
 use super::ModuleMetadata;
@@ -36,6 +31,9 @@ pub async fn install_from_github(
     verbosity: u8,
 ) -> Result<ExitStatus, Box<dyn Error>> {
     let platform = detect_platform();
+    if verbosity > 1 {
+        cprintln!("<s,c>»</> Searching for the release on GitHub...");
+    }
     let release = fetch_release(module).await?;
     let asset = find_matching_asset(&release.assets, &module.name, &platform).ok_or_else(|| {
         format!(
@@ -46,17 +44,16 @@ pub async fn install_from_github(
 
     let temp_dir = tempfile::Builder::new()
         .prefix("asimov-module-cli-")
-        .disable_cleanup(true)
         .tempdir()?;
 
     if verbosity > 1 {
-        cprintln!("<s,c>»</> Downloading asset from github...");
+        cprintln!("<s,c>»</> Downloading asset from GitHub...");
     }
     let download = download_asset(asset, temp_dir.path())
         .await
         .map_err(|e| format!("Failed to download asset: {}", e))?;
     if verbosity > 0 {
-        cprintln!("<s><g>✓</></> Downloaded asset `{}`", asset.name);
+        cprintln!("<s,g>✓</> Downloaded asset `{}`", asset.name);
     }
 
     match fetch_checksum(asset).await {
@@ -71,7 +68,7 @@ pub async fn install_from_github(
             }
             verify_checksum(&download, &checksum).await?;
             if verbosity > 0 {
-                cprintln!("<s><g>✓</></> Verified checksum");
+                cprintln!("<s,g>✓</> Verified checksum");
             }
         }
         Err(err) => {
@@ -90,35 +87,34 @@ pub async fn install_from_github(
 }
 
 fn detect_platform() -> PlatformInfo {
-    let os = match std::env::consts::OS {
-        "linux" => "linux",
-        "macos" => "macos",
-        "windows" => "windows",
-        _ => "unknown",
+    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+    let os = "unknown";
+    #[cfg(target_os = "macos")]
+    let os = "macos";
+    #[cfg(target_os = "linux")]
+    let os = "linux";
+    #[cfg(target_os = "windows")]
+    let os = "windows";
+
+    #[cfg(not(any(target_arch = "aarch64", target_arch = "arm", target_arch = "x86_64")))]
+    let arch = "unknown";
+    #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
+    let arch = "arm";
+    #[cfg(target_arch = "x86_64")]
+    let arch = "x86";
+
+    #[cfg(not(any(target_env = "musl", target_env = "gnu")))]
+    let libc = None;
+    #[cfg(target_env = "musl")]
+    let libc = Some("musl".to_string());
+    #[cfg(target_env = "gnu")]
+    let libc = Some("gnu".to_string());
+
+    PlatformInfo {
+        os: os.into(),
+        arch: arch.into(),
+        libc: libc.into(),
     }
-    .to_string();
-
-    let arch = match std::env::consts::ARCH {
-        "x86_64" => "x86",
-        "aarch64" => "arm",
-        "arm" => "arm",
-        _ => "unknown",
-    }
-    .to_string();
-
-    // For Linux, try to detect libc type
-    let libc = if os == "linux" {
-        // Simple heuristic: check if we're likely using musl
-        if std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default() == "musl" {
-            Some("musl".to_string())
-        } else {
-            Some("gnu".to_string())
-        }
-    } else {
-        None
-    };
-
-    PlatformInfo { os, arch, libc }
 }
 
 async fn fetch_release(module: &ModuleMetadata) -> Result<GitHubRelease, Box<dyn Error>> {
@@ -150,15 +146,29 @@ fn find_matching_asset<'a>(
                 module_name, platform.os, platform.arch, libc
             ),
             format!(
+                "asimov-{}-module-{}-{}-{}.zip",
+                module_name, platform.os, platform.arch, libc
+            ),
+            format!(
                 "asimov-{}-module-{}-{}.tar.gz",
+                module_name, platform.os, platform.arch
+            ),
+            format!(
+                "asimov-{}-module-{}-{}.zip",
                 module_name, platform.os, platform.arch
             ),
         ]
     } else {
-        vec![format!(
-            "asimov-{}-module-{}-{}.tar.gz",
-            module_name, platform.os, platform.arch
-        )]
+        vec![
+            format!(
+                "asimov-{}-module-{}-{}.tar.gz",
+                module_name, platform.os, platform.arch
+            ),
+            format!(
+                "asimov-{}-module-{}-{}.zip",
+                module_name, platform.os, platform.arch
+            ),
+        ]
     };
 
     for pattern in patterns {
@@ -246,95 +256,62 @@ async fn verify_checksum(
 }
 
 async fn install_binaries(src_asset: &Path, verbosity: u8) -> Result<(), Box<dyn Error>> {
-    let home_dir = std::env::home_dir().ok_or("Could not find home directory")?;
-    let install_dir = home_dir.join(".cargo").join("bin");
+    let install_dir = std::env::home_dir()
+        .ok_or("Could not find home directory")?
+        .join(".cargo")
+        .join("bin");
     tokio::fs::create_dir_all(&install_dir).await?;
 
-    let src_dir = src_asset.parent().ok_or("Invalid source path")?;
+    let temp_extract_dir = src_asset
+        .parent()
+        .expect("Incorrect asset directory")
+        .join("extracted");
+    tokio::fs::create_dir_all(&temp_extract_dir).await?;
 
-    let file = std::fs::File::open(src_asset)?;
-    let reader = std::io::BufReader::new(file);
-
-    if src_asset.to_string_lossy().ends_with(".tar.gz") {
-        use flate2::read::GzDecoder;
-        use tar::Archive;
-        Archive::new(GzDecoder::new(reader))
-            .entries()?
-            .into_iter()
-            .try_for_each(|f| {
-                let mut f = f?;
-                f.unpack_in(&install_dir).and_then(|_| {
-                    // Make executable on Unix systems
-                    let name = f.path()?.file_name().unwrap().to_owned();
-                    #[cfg(unix)]
-                    {
-                        use std::os::unix::fs::PermissionsExt;
-                        std::fs::set_permissions(
-                            &install_dir.join(&name),
-                            Permissions::from_mode(0o755),
-                        )?;
-                    }
-                    if verbosity > 0 {
-                        cprintln!(
-                            "<s><g>✓</></> Installed binary `{}`",
-                            name.to_string_lossy()
-                        );
-                    }
-                    Ok(())
-                })
-            })?;
-    } else if src_asset.to_string_lossy().ends_with(".zip") {
-        use zip::ZipArchive;
-
-        let mut archive = ZipArchive::new(reader)?;
-        for i in 0..archive.len() {
-            let mut file = archive.by_index(i)?;
-            let outpath = src_dir.join(file.name());
-
-            if file.name().ends_with('/') {
-                std::fs::create_dir_all(&outpath)?;
+    tokio::task::spawn_blocking({
+        let src_asset = src_asset.to_owned();
+        let src_name = src_asset.to_string_lossy().into_owned();
+        let dst = temp_extract_dir.clone();
+        use std::io::{Error, ErrorKind, Result};
+        move || -> Result<()> {
+            let asset_file = std::fs::File::open(&src_asset)?;
+            if src_name.ends_with(".tar.gz") {
+                let gz = flate2::read::GzDecoder::new(asset_file);
+                let mut archive = tar::Archive::new(gz);
+                archive.unpack(&dst)?;
+            } else if src_name.ends_with(".zip") {
+                let mut archive = zip::ZipArchive::new(asset_file)?;
+                archive.extract(&dst)?;
             } else {
-                if let Some(parent) = outpath.parent() {
-                    std::fs::create_dir_all(parent)?;
-                }
-                let mut out = std::fs::File::create(&outpath)?;
-                std::io::copy(&mut file, &mut out)?;
+                return Err(Error::new(ErrorKind::Other, "Unsupported format"));
             }
+            Ok(())
         }
-    } else {
-        return Err("Unsupported format".into());
+    })
+    .await??;
+
+    let mut read_dir = tokio::fs::read_dir(&temp_extract_dir).await?;
+
+    while let Some(entry) = read_dir.next_entry().await? {
+        if !entry.file_type().await?.is_file() {
+            continue;
+        }
+        let name = entry.file_name();
+        let mut src = tokio::fs::File::open(entry.path()).await?;
+        let dst_path = install_dir.join(&name);
+        let mut dst = tokio::fs::File::create(&dst_path).await?;
+        tokio::io::copy(&mut src, &mut dst).await?;
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            tokio::fs::set_permissions(dst_path, Permissions::from_mode(0o755)).await?;
+        }
+
+        if verbosity > 0 {
+            cprintln!("<s,g>✓</> Installed binary `{}`", name.to_string_lossy());
+        }
     }
-
-    // let mut read_dir = tokio::fs::read_dir(src_dir).await?;
-
-    // while let Some(file) = read_dir.next_entry().await? {
-    //     let path = file.path();
-    //     let Some(name) = path.file_name() else {
-    //         continue;
-    //     };
-    //     if path.to_string_lossy().ends_with(".tar.gz") {
-    //         continue;
-    //     }
-    //     if path.to_string_lossy().ends_with(".zip") {
-    //         continue;
-    //     }
-    //     let target_path = install_dir.join(name);
-    //     tokio::fs::copy(&path, &target_path).await?;
-
-    //     // Make executable on Unix systems
-    //     #[cfg(unix)]
-    //     {
-    //         use std::os::unix::fs::PermissionsExt;
-    //         tokio::fs::set_permissions(&target_path, Permissions::from_mode(0o755)).await?;
-    //     }
-
-    //     if verbosity > 0 {
-    //         cprintln!(
-    //             "<s><g>✓</></> Installed binary `{}`",
-    //             name.to_string_lossy()
-    //         );
-    //     }
-    // }
 
     Ok(())
 }

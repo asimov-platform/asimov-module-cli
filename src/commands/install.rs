@@ -50,7 +50,6 @@ pub async fn install(
         }
 
         let result = match module.r#type {
-            #[cfg(unix)]
             Rust => {
                 if flags.verbose > 1 {
                     cprintln!("<s,c>»</> Attempting to install from GitHub releases...");
@@ -61,7 +60,7 @@ pub async fn install(
                     Err(err) => {
                         if flags.verbose > 1 {
                             ceprintln!(
-                                "<s,r>error:</> Install from GitHub release failed: {}, trying Cargo...",
+                                "<s,r>error:</> Install from GitHub releases failed: {}, trying Cargo...",
                                 err
                             );
                         }
@@ -69,8 +68,6 @@ pub async fn install(
                     }
                 }
             }
-            #[cfg(not(unix))]
-            Rust => CargoEnv::default().install_module(&module.name, Some(venv_verbosity)),
             Ruby => RubyEnv::default().install_module(&module.name, Some(venv_verbosity)),
             Python => PythonEnv::default().install_module(&module.name, Some(venv_verbosity)),
         };
