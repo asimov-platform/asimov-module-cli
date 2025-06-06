@@ -1,7 +1,10 @@
 // This is free and unencumbered software released into the public domain.
 
 use serde::Deserialize;
-use std::{error::Error, process::Command};
+use std::{
+    error::Error,
+    process::{Command, ExitStatus},
+};
 
 #[derive(Debug)]
 struct PlatformInfo {
@@ -21,28 +24,27 @@ struct GitHubAsset {
     browser_download_url: String,
 }
 
-pub async fn try_install_from_github(
+pub async fn install_from_github(
     module_name: &str,
     verbosity: u8,
-) -> Result<bool, Box<dyn Error>> {
+) -> Result<ExitStatus, Box<dyn Error>> {
     let platform = detect_platform();
 
     // Fetch the latest release
-    let release = match fetch_latest_release(module_name).await {
-        Ok(release) => release,
-        Err(_) => return Ok(false), // No release found
-    };
+    let release = fetch_latest_release(module_name).await?;
 
     // Find a matching asset for our platform
-    let asset = match find_matching_asset(&release.assets, module_name, &platform) {
-        Some(asset) => asset,
-        None => return Ok(false), // No matching asset
-    };
+    let asset = find_matching_asset(&release.assets, module_name, &platform).ok_or_else(|| {
+        format!(
+            "No matching asset found for platform {}-{}",
+            platform.os, platform.arch
+        )
+    })?;
 
     // Download and install the binary
     download_and_install_binary(asset, module_name, verbosity).await?;
 
-    Ok(true)
+    Ok(ExitStatus::default())
 }
 
 fn detect_platform() -> PlatformInfo {

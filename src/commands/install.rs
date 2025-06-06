@@ -9,11 +9,7 @@ use asimov_env::{
     envs::{CargoEnv, PythonEnv, RubyEnv},
 };
 use color_print::{ceprintln, cprintln};
-use serde::Deserialize;
-use std::{
-    io::ErrorKind,
-    process::{Command, ExitStatus},
-};
+use std::{io::ErrorKind, process::Command};
 
 #[tokio::main]
 pub async fn install(
@@ -55,37 +51,22 @@ pub async fn install(
 
         let result = match module.r#type {
             Rust => {
-                // First try installing from Cargo
-                let cargo_result =
-                    CargoEnv::default().install_module(&module.name, Some(venv_verbosity));
+                if flags.verbose > 1 {
+                    cprintln!("<s,c>»</> Attempting to install from GitHub releases...");
+                }
 
-                // If Cargo installation fails, try GitHub releases
-                match cargo_result {
-                    Ok(status) if status.success() => Ok(status),
-                    _ => {
+                match crate::registry::github::install_from_github(&module.name, venv_verbosity)
+                    .await
+                {
+                    Ok(status) => Ok(status),
+                    Err(err) => {
                         if flags.verbose > 1 {
-                            cprintln!("<s><c>»</></> Cargo installation failed, trying GitHub releases...");
+                            ceprintln!(
+                                "<s,r>error:</> Install from GitHub release failed: {}, trying Cargo...",
+                                err
+                            );
                         }
-
-                        match crate::registry::github::try_install_from_github(
-                            &module.name,
-                            venv_verbosity,
-                        )
-                        .await
-                        {
-                            Ok(true) => {
-                                // Create a fake successful status - use Command to get a real ExitStatus
-                                let fake_success =
-                                    Command::new("true").status().unwrap_or_else(|_| {
-                                        // Fallback if 'true' command isn't available
-                                        Command::new("echo")
-                                            .status()
-                                            .expect("echo command should be available")
-                                    });
-                                Ok(fake_success)
-                            }
-                            Ok(false) | Err(_) => cargo_result, // Fall back to original error
-                        }
+                        CargoEnv::default().install_module(&module.name, Some(venv_verbosity))
                     }
                 }
             }
