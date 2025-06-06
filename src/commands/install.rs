@@ -55,9 +55,7 @@ pub async fn install(
                     cprintln!("<s,c>»</> Attempting to install from GitHub releases...");
                 }
 
-                match crate::registry::github::install_from_github(&module.name, venv_verbosity)
-                    .await
-                {
+                match crate::registry::github::install_from_github(&module, venv_verbosity).await {
                     Ok(status) => Ok(status),
                     Err(err) => {
                         if flags.verbose > 1 {

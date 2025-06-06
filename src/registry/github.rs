@@ -6,6 +6,8 @@ use std::{
     process::{Command, ExitStatus},
 };
 
+use super::ModuleMetadata;
+
 #[derive(Debug)]
 struct PlatformInfo {
     os: String,
@@ -25,24 +27,21 @@ struct GitHubAsset {
 }
 
 pub async fn install_from_github(
-    module_name: &str,
+    module: &ModuleMetadata,
     verbosity: u8,
 ) -> Result<ExitStatus, Box<dyn Error>> {
     let platform = detect_platform();
 
-    // Fetch the latest release
-    let release = fetch_latest_release(module_name).await?;
+    let release = fetch_release(&module).await?;
 
-    // Find a matching asset for our platform
-    let asset = find_matching_asset(&release.assets, module_name, &platform).ok_or_else(|| {
+    let asset = find_matching_asset(&release.assets, &module.name, &platform).ok_or_else(|| {
         format!(
             "No matching asset found for platform {}-{}",
             platform.os, platform.arch
         )
     })?;
 
-    // Download and install the binary
-    download_and_install_binary(asset, module_name, verbosity).await?;
+    download_and_install_binary(asset, &module.name, verbosity).await?;
 
     Ok(ExitStatus::default())
 }
@@ -79,10 +78,10 @@ fn detect_platform() -> PlatformInfo {
     PlatformInfo { os, arch, libc }
 }
 
-async fn fetch_latest_release(module_name: &str) -> Result<GitHubRelease, Box<dyn Error>> {
+async fn fetch_release(module: &ModuleMetadata) -> Result<GitHubRelease, Box<dyn Error>> {
     let url = format!(
-        "https://api.github.com/repos/asimov-platform/asimov-{}-module/releases/latest",
-        module_name
+        "https://api.github.com/repos/asimov-platform/asimov-{}-module/releases/{}",
+        &module.name, &module.version
     );
 
     let client = super::http::http_client();
@@ -101,7 +100,6 @@ fn find_matching_asset<'a>(
     module_name: &str,
     platform: &PlatformInfo,
 ) -> Option<&'a GitHubAsset> {
-    // Look for pattern: asimov-{module}-{os}-{arch}[-{libc}].tar.gz
     let patterns = if let Some(libc) = &platform.libc {
         vec![
             format!(
@@ -143,11 +141,9 @@ async fn download_and_install_binary(
 
     let bytes = response.bytes().await?;
 
-    // Create a temporary file
     let temp_path = std::env::temp_dir().join(&asset.name);
     std::fs::write(&temp_path, &bytes)?;
 
-    // Extract the tar.gz file
     let output = Command::new("tar")
         .args(["-xzf", temp_path.to_str().unwrap()])
         .current_dir(std::env::temp_dir())
@@ -164,7 +160,6 @@ async fn download_and_install_binary(
         return Err(format!("Binary {} not found in extracted archive", binary_name).into());
     }
 
-    // Install to ~/.cargo/bin or system path
     let home_dir = std::env::home_dir().ok_or("Could not find home directory")?;
     let install_dir = home_dir.join(".cargo").join("bin");
 
@@ -182,7 +177,6 @@ async fn download_and_install_binary(
         std::fs::set_permissions(&target_path, perms)?;
     }
 
-    // Clean up temporary files
     let _ = std::fs::remove_file(&temp_path);
     let _ = std::fs::remove_file(&extracted_binary);
 
