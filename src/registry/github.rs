@@ -1,10 +1,15 @@
 // This is free and unencumbered software released into the public domain.
 
+use color_print::cprintln;
 use serde::Deserialize;
+use sha2::{Digest, Sha256};
 use std::{
     error::Error,
+    fs::Permissions,
+    path::Path,
     process::{Command, ExitStatus},
 };
+use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 
 use super::ModuleMetadata;
 
@@ -31,9 +36,7 @@ pub async fn install_from_github(
     verbosity: u8,
 ) -> Result<ExitStatus, Box<dyn Error>> {
     let platform = detect_platform();
-
-    let release = fetch_release(&module).await?;
-
+    let release = fetch_release(module).await?;
     let asset = find_matching_asset(&release.assets, &module.name, &platform).ok_or_else(|| {
         format!(
             "No matching asset found for platform {}-{}",
@@ -41,7 +44,47 @@ pub async fn install_from_github(
         )
     })?;
 
-    download_and_install_binary(asset, &module.name, verbosity).await?;
+    let temp_dir = tempfile::Builder::new()
+        .prefix("asimov-module-cli-")
+        .disable_cleanup(true)
+        .tempdir()?;
+
+    if verbosity > 1 {
+        cprintln!("<s,c>»</> Downloading asset from github...");
+    }
+    let download = download_asset(asset, temp_dir.path())
+        .await
+        .map_err(|e| format!("Failed to download asset: {}", e))?;
+    if verbosity > 0 {
+        cprintln!("<s><g>✓</></> Downloaded asset `{}`", asset.name);
+    }
+
+    match fetch_checksum(asset).await {
+        Ok(None) => {
+            if verbosity > 1 {
+                cprintln!("<s,y>warning:</> No checksum file found, skipping verification");
+            }
+        }
+        Ok(Some(checksum)) => {
+            if verbosity > 1 {
+                cprintln!("<s,c>»</> Verifying checksum...");
+            }
+            verify_checksum(&download, &checksum).await?;
+            if verbosity > 0 {
+                cprintln!("<s><g>✓</></> Verified checksum");
+            }
+        }
+        Err(err) => {
+            return Err(format!("Error while fetching checksum file: {}", err).into());
+        }
+    }
+
+    if verbosity > 1 {
+        cprintln!("<s,c>»</> Installing binaries...");
+    }
+    install_binaries(&download, verbosity)
+        .await
+        .map_err(|e| format!("Failed to install binaries: {}", e))?;
 
     Ok(ExitStatus::default())
 }
@@ -80,7 +123,7 @@ fn detect_platform() -> PlatformInfo {
 
 async fn fetch_release(module: &ModuleMetadata) -> Result<GitHubRelease, Box<dyn Error>> {
     let url = format!(
-        "https://api.github.com/repos/asimov-platform/asimov-{}-module/releases/{}",
+        "https://api.github.com/repos/asimov-modules/asimov-{}-module/releases/tags/{}",
         &module.name, &module.version
     );
 
@@ -127,58 +170,124 @@ fn find_matching_asset<'a>(
     None
 }
 
-async fn download_and_install_binary(
-    asset: &GitHubAsset,
-    module_name: &str,
-    _verbosity: u8,
-) -> Result<(), Box<dyn Error>> {
+async fn fetch_checksum(asset: &GitHubAsset) -> Result<Option<String>, Box<dyn Error>> {
+    let checksum_url = format!("{}.sha256", asset.browser_download_url);
+
     let client = super::http::http_client();
-    let response = client.get(&asset.browser_download_url).send().await?;
+
+    let response = client.get(&checksum_url).send().await?;
+
+    if response.status() == 404 {
+        return Ok(None);
+    }
+
+    if !response.status().is_success() {
+        return Err(format!("Failed to checksum asset: {}", response.status()).into());
+    }
+
+    Ok(Some(response.text().await?.trim().to_string()))
+}
+
+async fn download_asset(
+    asset: &GitHubAsset,
+    dst_dir: &Path,
+) -> Result<std::path::PathBuf, Box<dyn Error>> {
+    let client = super::http::http_client();
+    let mut response = client.get(&asset.browser_download_url).send().await?;
 
     if !response.status().is_success() {
         return Err(format!("Failed to download asset: {}", response.status()).into());
     }
 
-    let bytes = response.bytes().await?;
+    let asset_path = dst_dir.join(&asset.name);
+    let mut dst = tokio::fs::File::create(&asset_path)
+        .await
+        .map_err(|e| format!("Failed to create file for download: {}", e))?;
+    while let Some(chunk) = response.chunk().await? {
+        dst.write_all(&chunk).await?;
+    }
+    dst.flush().await?;
+    drop(dst);
 
-    let temp_path = std::env::temp_dir().join(&asset.name);
-    std::fs::write(&temp_path, &bytes)?;
+    Ok(asset_path)
+}
+
+async fn verify_checksum(
+    binary_path: &Path,
+    expected_checksum: &str,
+) -> Result<(), Box<dyn Error>> {
+    let mut hasher = Sha256::new();
+    let mut file = tokio::fs::File::open(binary_path).await?;
+    let mut buf = vec![0u8; 10 * 1024];
+    loop {
+        let n = file.read(&mut buf).await?;
+        if n == 0 {
+            break; // End of file
+        }
+        hasher.update(&buf[..n]);
+    }
+    let actual_checksum = format!("{:x}", hasher.finalize());
+
+    // Extract just the hash part from expected (in case it has filename)
+    let expected_hash = expected_checksum
+        .split_whitespace()
+        .next()
+        .unwrap_or(expected_checksum);
+
+    if actual_checksum != expected_hash {
+        return Err(format!(
+            "Checksum verification failed: expected {}, got {}",
+            expected_hash, actual_checksum
+        )
+        .into());
+    }
+
+    Ok(())
+}
+
+async fn install_binaries(src_asset: &Path, verbosity: u8) -> Result<(), Box<dyn Error>> {
+    let home_dir = std::env::home_dir().ok_or("Could not find home directory")?;
+    let install_dir = home_dir.join(".cargo").join("bin");
+    tokio::fs::create_dir_all(&install_dir).await?;
+
+    let src_dir = src_asset.parent().ok_or("Invalid source path")?;
 
     let output = Command::new("tar")
-        .args(["-xzf", temp_path.to_str().unwrap()])
-        .current_dir(std::env::temp_dir())
+        .args(["-xzf", src_asset.to_str().unwrap()])
+        .current_dir(src_dir)
         .output()?;
 
     if !output.status.success() {
         return Err("Failed to extract tar.gz file".into());
     }
 
-    let binary_name = format!("asimov-{}-module", module_name);
-    let extracted_binary = std::env::temp_dir().join(&binary_name);
+    let mut read_dir = tokio::fs::read_dir(src_dir).await?;
 
-    if !extracted_binary.exists() {
-        return Err(format!("Binary {} not found in extracted archive", binary_name).into());
+    while let Some(file) = read_dir.next_entry().await? {
+        let path = file.path();
+        let Some(name) = path.file_name() else {
+            continue;
+        };
+        if name.to_string_lossy().ends_with("tar.gz") {
+            continue;
+        }
+        let target_path = install_dir.join(name);
+        tokio::fs::copy(&path, &target_path).await?;
+
+        // Make executable on Unix systems
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            tokio::fs::set_permissions(&target_path, Permissions::from_mode(0o755)).await?;
+        }
+
+        if verbosity > 0 {
+            cprintln!(
+                "<s><g>✓</></> Installed binary `{}`",
+                name.to_string_lossy()
+            );
+        }
     }
-
-    let home_dir = std::env::home_dir().ok_or("Could not find home directory")?;
-    let install_dir = home_dir.join(".cargo").join("bin");
-
-    std::fs::create_dir_all(&install_dir)?;
-
-    let target_path = install_dir.join(&binary_name);
-    std::fs::copy(&extracted_binary, &target_path)?;
-
-    // Make executable on Unix systems
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = std::fs::metadata(&target_path)?.permissions();
-        perms.set_mode(0o755);
-        std::fs::set_permissions(&target_path, perms)?;
-    }
-
-    let _ = std::fs::remove_file(&temp_path);
-    let _ = std::fs::remove_file(&extracted_binary);
 
     Ok(())
 }
