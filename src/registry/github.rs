@@ -113,7 +113,7 @@ fn detect_platform() -> PlatformInfo {
     PlatformInfo {
         os: os.into(),
         arch: arch.into(),
-        libc: libc.into(),
+        libc,
     }
 }
 
@@ -217,7 +217,6 @@ async fn download_asset(
         dst.write_all(&chunk).await?;
     }
     dst.flush().await?;
-    drop(dst);
 
     Ok(asset_path)
 }
@@ -272,7 +271,7 @@ async fn install_binaries(src_asset: &Path, verbosity: u8) -> Result<(), Box<dyn
         let src_asset = src_asset.to_owned();
         let src_name = src_asset.to_string_lossy().into_owned();
         let dst = temp_extract_dir.clone();
-        use std::io::{Error, ErrorKind, Result};
+        use std::io::{Error, Result};
         move || -> Result<()> {
             let asset_file = std::fs::File::open(&src_asset)?;
             if src_name.ends_with(".tar.gz") {
@@ -283,7 +282,7 @@ async fn install_binaries(src_asset: &Path, verbosity: u8) -> Result<(), Box<dyn
                 let mut archive = zip::ZipArchive::new(asset_file)?;
                 archive.extract(&dst)?;
             } else {
-                return Err(Error::new(ErrorKind::Other, "Unsupported format"));
+                return Err(Error::other("Unsupported format"));
             }
             Ok(())
         }
