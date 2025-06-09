@@ -100,8 +100,10 @@ fn detect_platform() -> PlatformInfo {
     let arch = "unknown";
     #[cfg(any(target_arch = "aarch64", target_arch = "arm"))]
     let arch = "arm";
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(all(target_arch = "x86_64", not(target_os = "windows")))]
     let arch = "x86";
+    #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
+    let arch = "x64";
 
     #[cfg(not(any(target_env = "musl", target_env = "gnu")))]
     let libc = None;
