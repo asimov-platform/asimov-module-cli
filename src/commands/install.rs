@@ -50,7 +50,24 @@ pub async fn install(
         }
 
         let result = match module.r#type {
-            Rust => CargoEnv::default().install_module(&module.name, Some(venv_verbosity)),
+            Rust => {
+                if flags.verbose > 1 {
+                    cprintln!("<s,c>»</> Attempting to install from GitHub releases...");
+                }
+
+                match crate::registry::github::install_from_github(&module, venv_verbosity).await {
+                    Ok(status) => Ok(status),
+                    Err(err) => {
+                        if flags.verbose > 1 {
+                            ceprintln!(
+                                "<s,r>error:</> Install from GitHub releases failed: {}, trying Cargo...",
+                                err
+                            );
+                        }
+                        CargoEnv::default().install_module(&module.name, Some(venv_verbosity))
+                    }
+                }
+            }
             Ruby => RubyEnv::default().install_module(&module.name, Some(venv_verbosity)),
             Python => PythonEnv::default().install_module(&module.name, Some(venv_verbosity)),
         };
