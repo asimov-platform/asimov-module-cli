@@ -1,12 +1,13 @@
 // This is free and unencumbered software released into the public domain.
 
 use crate::{
-    registry::{self, ModuleMetadata},
+    registry::{self, install_module_manifest, ModuleMetadata},
     StandardOptions, SysexitsError,
 };
 use asimov_env::{
     env::Env,
     envs::{CargoEnv, PythonEnv, RubyEnv},
+    paths::asimov_root,
 };
 use color_print::{ceprintln, cprintln};
 use std::io::ErrorKind;
@@ -105,6 +106,16 @@ pub async fn install(
                         module.r#type.origin(),
                     );
                 }
+
+                install_module_manifest(&module.name)
+                    .await
+                    .inspect_err(|e| {
+                        ceprintln!(
+                            "<r,s>error:</> failed to install module manifest for `{}`: exit code {}",
+                            module.name,
+                            e
+                        )
+                    });
             }
         }
     }

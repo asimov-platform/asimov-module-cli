@@ -6,10 +6,11 @@ pub mod http;
 pub mod pypi;
 pub mod rubygems;
 
-use crate::{registry, SysexitsError};
+use crate::{registry, SysexitsError, SysexitsError::*};
 use asimov_env::{
     env::Env,
     envs::{PythonEnv, RubyEnv},
+    paths::asimov_root,
 };
 use derive_more::Display;
 use tokio::task;
@@ -103,4 +104,32 @@ pub async fn fetch_modules() -> Result<Vec<ModuleMetadata>, SysexitsError> {
     all_modules.sort_by_key(|m| m.name.clone());
 
     Ok(all_modules)
+}
+
+pub async fn install_module_manifest(module_name: &str) -> Result<(), SysexitsError> {
+    let module_dir = asimov_root().join("modules");
+    std::fs::create_dir_all(&module_dir)?;
+
+    // TODO: branches other than master?
+    let url = format!(
+            "https://raw.githubusercontent.com/asimov-modules/asimov-{}-module/master/.asimov/module.yaml",
+            module_name
+        );
+
+    let manifest = http::http_client()
+        .get(url)
+        .send()
+        .await
+        .map_err(|_| EX_UNAVAILABLE)?
+        .bytes()
+        .await
+        .map_err(|_| EX_UNAVAILABLE)?;
+
+    let manifest_filename = module_dir.join(format!("{}.yaml", module_name));
+    let mut manifest_file = tokio::fs::File::create(manifest_filename).await?;
+
+    use tokio::io::AsyncWriteExt as _;
+    manifest_file.write_all(&manifest).await?;
+
+    Ok(())
 }
