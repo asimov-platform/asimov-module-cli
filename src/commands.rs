@@ -26,6 +26,9 @@ pub use link::*;
 mod list;
 pub use list::*;
 
+mod resolve;
+pub use resolve::*;
+
 mod uninstall;
 pub use uninstall::*;
 
