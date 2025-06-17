@@ -331,10 +331,7 @@ async fn verify_checksum(
 }
 
 async fn install_binaries(src_asset: &Path, verbosity: u8) -> Result<(), Box<dyn Error>> {
-    let install_dir = std::env::home_dir()
-        .ok_or("Could not find home directory")?
-        .join(".cargo")
-        .join("bin");
+    let install_dir = asimov_root().join("libexec");
     tokio::fs::create_dir_all(&install_dir).await?;
 
     let temp_extract_dir = src_asset
