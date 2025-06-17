@@ -35,8 +35,7 @@ temp-dir = "0.1"
 
 [dependencies]
 asimov-env = { version = "25.0.0-dev.3" }
-# TODO: upload a new release and import it
-asimov-module = { path = "../asimov.rs/lib/asimov-module" }
+asimov-module = { version = "25.0.0-dev.10" }
 clap = { version = "4.5", default-features = false }
 clientele = { version = "0.3", features = ["serde-json", "tokio"] }
 color-print = "=0.3.7"
