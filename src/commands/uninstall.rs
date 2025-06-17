@@ -35,7 +35,11 @@ pub async fn uninstall(
             }
 
             match tokio::fs::remove_file(&path).await {
-                Ok(_) => (),
+                Ok(_) => {
+                    if flags.verbose > 1 {
+                        cprintln!("<s,g>✓</> Removed binary `{}`.", path.display());
+                    }
+                }
                 Err(err) if err.kind() == ErrorKind::NotFound => (),
                 Err(err) => {
                     ceprintln!(
@@ -46,10 +50,6 @@ pub async fn uninstall(
                     return Err(SysexitsError::from(err));
                 }
             }
-
-            if flags.verbose > 1 {
-                cprintln!("<s,g>✓</> Removed binary `{}`.", path.display());
-            }
         }
     }
 
@@ -58,7 +58,11 @@ pub async fn uninstall(
             .join("modules")
             .join(format!("{module_name}.yaml"));
         match tokio::fs::remove_file(file).await {
-            Ok(_) => (),
+            Ok(_) => {
+                if flags.verbose > 1 {
+                    cprintln!("<s,g>✓</> Removed manifest for module `{}`.", module_name);
+                }
+            }
             Err(err) if err.kind() == ErrorKind::NotFound => (),
             Err(err) => {
                 ceprintln!(
@@ -68,9 +72,6 @@ pub async fn uninstall(
                 );
                 return Err(SysexitsError::from(err));
             }
-        }
-        if flags.verbose > 1 {
-            cprintln!("<s,g>✓</> Removed manifest for module `{}`.", module_name);
         }
     }
 
