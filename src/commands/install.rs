@@ -1,7 +1,7 @@
 // This is free and unencumbered software released into the public domain.
 
 use crate::{
-    registry::{self, install_module_manifest, ModuleMetadata},
+    registry::{self, ModuleMetadata},
     StandardOptions, SysexitsError,
 };
 use asimov_env::{
@@ -19,103 +19,127 @@ pub async fn install(
 ) -> Result<(), SysexitsError> {
     let mut modules_to_install: Vec<ModuleMetadata> = vec![];
 
-    for module_name in module_names {
-        // if registry::is_installed(&module_name) {
-        //     continue; // skip already installed modules
-        // }
-
-        match registry::fetch_module(&module_name).await {
-            Some(module) => {
-                if !module.is_installed()? {
-                    modules_to_install.push(module.clone());
-                }
-            }
-            None => {
-                ceprintln!("<s><r>error:</></> unknown module: {}", module_name);
-                return Err(SysexitsError::EX_UNAVAILABLE);
-            }
-        }
-    }
-
     let venv_verbosity = if flags.debug { flags.verbose + 1 } else { 0 };
 
-    for module in modules_to_install {
-        use registry::ModuleType::*;
+    for module_name in module_names {
+        let release = registry::github::fetch_latest_release(&module_name)
+            .await
+            .inspect_err(|e| {
+                ceprintln!(
+                    "<s,r>error:</> unable to find latest release for module `{}`: {}",
+                    module_name,
+                    e
+                )
+            })?;
 
-        if flags.verbose > 1 {
+        if flags.verbose > 0 {
             cprintln!(
-                "<s><c>»</></> Installing the module `{}` from {}...",
-                module.name,
-                module.r#type.origin(),
+                "<s,c>✓</> Found latest version `{}` for module `{}`.",
+                release,
+                module_name,
             );
         }
 
-        let result = match module.r#type {
-            Rust => {
-                if flags.verbose > 1 {
-                    cprintln!("<s,c>»</> Attempting to install from GitHub releases...");
-                }
+        registry::github::install_module_manifest(&module_name, &release)
+            .await
+            .inspect_err(|e| {
+                ceprintln!(
+                    "<s,r>error:</> failed to install module manifest for `{}`: exit code {}",
+                    module_name,
+                    e
+                )
+            })?;
+        if flags.verbose > 1 {
+            cprintln!(
+                "<s,c>✓</> Fetched module manifest for module `{}`",
+                module_name,
+            );
+        }
 
-                match crate::registry::github::install_from_github(&module, venv_verbosity).await {
-                    Ok(status) => Ok(status),
-                    Err(err) => {
-                        if flags.verbose > 1 {
-                            ceprintln!(
-                                "<s,r>error:</> Install from GitHub releases failed: {}, trying Cargo...",
-                                err
-                            );
-                        }
-                        CargoEnv::default().install_module(&module.name, Some(venv_verbosity))
-                    }
-                }
-            }
-            Ruby => RubyEnv::default().install_module(&module.name, Some(venv_verbosity)),
-            Python => PythonEnv::default().install_module(&module.name, Some(venv_verbosity)),
-        };
+        let github_install_result =
+            registry::github::install_from_github(&module_name, &release, flags.verbose).await;
 
-        match result {
-            Err(error) if error.kind() == ErrorKind::NotFound => {
-                ceprintln!(
-                    "<s><r>error:</></> failed to install module `{}`: missing {} environment",
-                    module.name,
-                    module.r#type.to_string()
-                );
-                return Err(SysexitsError::EX_UNAVAILABLE);
-            }
-            Err(error) => {
-                ceprintln!(
-                    "<s><r>error:</></> failed to install module `{}`: {}",
-                    module.name,
-                    error
-                );
-                return Err(SysexitsError::EX_OSERR);
-            }
-            Ok(status) if !status.success() => {
-                ceprintln!(
-                    "<s><r>error:</></> failed to install module `{}`: exit code {}",
-                    module.name,
-                    status.code().unwrap_or_default()
-                );
-                return Err(SysexitsError::EX_SOFTWARE);
-            }
+        match github_install_result {
             Ok(_) => {
                 if flags.verbose > 0 {
                     cprintln!(
-                        "<s><g>✓</></> Installed the module `{}` from {}.",
+                        "<s,g>✓</> Installed the module `{}` from GitHub releases.",
+                        module_name,
+                    );
+                }
+            }
+            Err(err) => {
+                if flags.verbose > 1 {
+                    ceprintln!("<s,y>warning:</> Install from GitHub releases failed: {}, trying install from registry...", err);
+                }
+
+                let module = match registry::fetch_module(&module_name).await {
+                    Some(module) => {
+                        if !module.is_installed()? {
+                            module
+                        } else {
+                            continue;
+                        }
+                    }
+                    None => {
+                        ceprintln!("<s><r>error:</></> unknown module: {}", module_name);
+                        return Err(SysexitsError::EX_UNAVAILABLE);
+                    }
+                };
+
+                use registry::ModuleType::*;
+
+                if flags.verbose > 1 {
+                    cprintln!(
+                        "<s,c>»</> Installing the module `{}` from {}...",
                         module.name,
                         module.r#type.origin(),
                     );
                 }
 
-                install_module_manifest(&module.name)
-                    .await
-                    .inspect_err(|e| {
+                let result = match module.r#type {
+                    Rust => CargoEnv::default().install_module(&module.name, Some(venv_verbosity)),
+                    Ruby => RubyEnv::default().install_module(&module.name, Some(venv_verbosity)),
+                    Python => {
+                        PythonEnv::default().install_module(&module.name, Some(venv_verbosity))
+                    }
+                };
+
+                match result {
+                    Err(error) if error.kind() == ErrorKind::NotFound => {
                         ceprintln!(
-                            "<r,s>error:</> failed to install module manifest for `{}`: exit code {}",
+                            "<s,r>error:</> failed to install module `{}`: missing {} environment",
                             module.name,
-                            e
-                        )
-                    });
+                            module.r#type.to_string()
+                        );
+                        return Err(SysexitsError::EX_UNAVAILABLE);
+                    }
+                    Err(error) => {
+                        ceprintln!(
+                            "<s,r>error:</> failed to install module `{}`: {}",
+                            module.name,
+                            error
+                        );
+                        return Err(SysexitsError::EX_OSERR);
+                    }
+                    Ok(status) if !status.success() => {
+                        ceprintln!(
+                            "<s,r>error:</> failed to install module `{}`: exit code {}",
+                            module.name,
+                            status.code().unwrap_or_default()
+                        );
+                        return Err(SysexitsError::EX_SOFTWARE);
+                    }
+                    Ok(_) => {
+                        if flags.verbose > 0 {
+                            cprintln!(
+                                "<s,g>✓</> Installed the module `{}` from {}.",
+                                module.name,
+                                module.r#type.origin(),
+                            );
+                        }
+                    }
+                };
             }
         }
     }

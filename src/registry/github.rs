@@ -1,12 +1,12 @@
 // This is free and unencumbered software released into the public domain.
 
-use color_print::cprintln;
+use asimov_env::paths::asimov_root;
+use clientele::{SysexitsError, SysexitsError::*};
+use color_print::{ceprintln, cprintln};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use std::{error::Error, fs::Permissions, path::Path, process::ExitStatus};
+use std::{error::Error, fs::Permissions, path::Path};
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
-
-use super::ModuleMetadata;
 
 #[derive(Debug)]
 struct PlatformInfo {
@@ -17,6 +17,7 @@ struct PlatformInfo {
 
 #[derive(Debug, Deserialize)]
 struct GitHubRelease {
+    name: String,
     assets: Vec<GitHubAsset>,
 }
 
@@ -26,21 +27,54 @@ struct GitHubAsset {
     browser_download_url: String,
 }
 
+pub async fn fetch_latest_release(module_name: &str) -> Result<String, SysexitsError> {
+    let url = format!(
+        "https://api.github.com/repos/asimov-modules/asimov-{}-module/releases/latest",
+        module_name
+    );
+    let client = crate::registry::http::http_client();
+
+    let response = client.get(url).send().await.map_err(|e| {
+        ceprintln!("<s,r>error:</> request failed: {}", e);
+        EX_UNAVAILABLE
+    })?;
+
+    if response.status() != 200 {
+        ceprintln!(
+            "<s,r>error:</> request failed: HTTP status {}",
+            response.status()
+        );
+        return Err(EX_UNAVAILABLE);
+    }
+
+    response
+        .json::<GitHubRelease>()
+        .await
+        .map_err(|e| {
+            ceprintln!("<s,r>error:</> failed to read the response: {}", e);
+            EX_UNAVAILABLE
+        })
+        .map(|release| release.name)
+}
+
 pub async fn install_from_github(
-    module: &ModuleMetadata,
+    module_name: &str,
+    version: &str,
     verbosity: u8,
-) -> Result<ExitStatus, Box<dyn Error>> {
+) -> Result<(), SysexitsError> {
     let platform = detect_platform();
     if verbosity > 1 {
-        cprintln!("<s,c>»</> Searching for the release on GitHub...");
+        cprintln!("<s,c>»</> Searching for assets on GitHub...");
     }
-    let release = fetch_release(module).await?;
-    let asset = find_matching_asset(&release.assets, &module.name, &platform).ok_or_else(|| {
-        format!(
-            "No matching asset found for platform {}-{}",
-            platform.os, platform.arch
-        )
-    })?;
+    let release = fetch_release(module_name, version).await?;
+    let Some(asset) = find_matching_asset(&release.assets, module_name, &platform) else {
+        ceprintln!(
+            "<s,r>error:</> no matching asset found for platform {}-{}",
+            platform.os,
+            platform.arch
+        );
+        return Err(EX_UNAVAILABLE);
+    };
 
     let temp_dir = tempfile::Builder::new()
         .prefix("asimov-module-cli-")
@@ -49,9 +83,10 @@ pub async fn install_from_github(
     if verbosity > 1 {
         cprintln!("<s,c>»</> Downloading asset from GitHub...");
     }
-    let download = download_asset(asset, temp_dir.path())
-        .await
-        .map_err(|e| format!("Failed to download asset: {}", e))?;
+    let download = download_asset(asset, temp_dir.path()).await.map_err(|e| {
+        ceprintln!("<s,r>error:</> failed to download asset: {}", e);
+        EX_UNAVAILABLE
+    })?;
     if verbosity > 0 {
         cprintln!("<s,g>✓</> Downloaded asset `{}`", asset.name);
     }
@@ -72,18 +107,57 @@ pub async fn install_from_github(
             }
         }
         Err(err) => {
-            return Err(format!("Error while fetching checksum file: {}", err).into());
+            ceprintln!("<s,r>error:</> error while fetching checksum file: {}", err);
+            return Err(EX_UNAVAILABLE);
         }
     }
 
     if verbosity > 1 {
         cprintln!("<s,c>»</> Installing binaries...");
     }
-    install_binaries(&download, verbosity)
-        .await
-        .map_err(|e| format!("Failed to install binaries: {}", e))?;
+    install_binaries(&download, verbosity).await.map_err(|e| {
+        ceprintln!("<s,r>error:</> failed to install binaries: {}", e);
+        EX_UNAVAILABLE
+    })?;
 
-    Ok(ExitStatus::default())
+    Ok(())
+}
+
+pub async fn install_module_manifest(
+    module_name: &str,
+    version: &str,
+) -> Result<(), SysexitsError> {
+    let module_dir = asimov_root().join("modules");
+    std::fs::create_dir_all(&module_dir)?;
+
+    let url = format!(
+        "https://raw.githubusercontent.com/asimov-modules/asimov-{}-module/{}/.asimov/module.yaml",
+        module_name, version
+    );
+
+    let response = crate::registry::http::http_client()
+        .get(url)
+        .send()
+        .await
+        .map_err(|_| EX_UNAVAILABLE)?;
+
+    if response.status() != 200 {
+        ceprintln!(
+            "<s,r>error:</> failed to fetch module manifest: HTTP status {}",
+            response.status()
+        );
+        return Err(EX_UNAVAILABLE);
+    }
+
+    let manifest = response.bytes().await.map_err(|_| EX_UNAVAILABLE)?;
+
+    let manifest_filename = module_dir.join(format!("{}.yaml", module_name));
+    let mut manifest_file = tokio::fs::File::create(manifest_filename).await?;
+
+    use tokio::io::AsyncWriteExt as _;
+    manifest_file.write_all(&manifest).await?;
+
+    Ok(())
 }
 
 fn detect_platform() -> PlatformInfo {
@@ -119,10 +193,10 @@ fn detect_platform() -> PlatformInfo {
     }
 }
 
-async fn fetch_release(module: &ModuleMetadata) -> Result<GitHubRelease, Box<dyn Error>> {
+async fn fetch_release(module_name: &str, version: &str) -> Result<GitHubRelease, Box<dyn Error>> {
     let url = format!(
         "https://api.github.com/repos/asimov-modules/asimov-{}-module/releases/tags/{}",
-        &module.name, &module.version
+        module_name, version
     );
 
     let client = super::http::http_client();
