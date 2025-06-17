@@ -128,7 +128,7 @@ pub async fn install_module_manifest(
     version: &str,
 ) -> Result<(), SysexitsError> {
     let module_dir = asimov_root().join("modules");
-    std::fs::create_dir_all(&module_dir)?;
+    tokio::fs::create_dir_all(&module_dir).await?;
 
     let url = format!(
         "https://raw.githubusercontent.com/asimov-modules/asimov-{}-module/{}/.asimov/module.yaml",
