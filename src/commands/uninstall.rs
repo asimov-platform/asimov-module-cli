@@ -7,6 +7,7 @@ use crate::{
 use asimov_env::{
     env::Env,
     envs::{CargoEnv, PythonEnv, RubyEnv},
+    paths::asimov_root,
 };
 use color_print::{ceprintln, cprintln};
 use std::io::ErrorKind;
@@ -16,6 +17,60 @@ pub async fn uninstall(
     module_names: Vec<String>,
     flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
+    if let Ok(mut module_bin_dir) = tokio::fs::read_dir(asimov_root().join("libexec")).await {
+        while let Ok(Some(entry)) = module_bin_dir.next_entry().await {
+            let path = entry.path();
+            let Some(name) = path.file_name().map(|n| n.to_string_lossy()) else {
+                continue;
+            };
+            let Some(name) = name.strip_prefix("asimov-") else {
+                continue;
+            };
+
+            if !module_names.iter().any(|module| name.starts_with(module)) {
+                continue;
+            }
+
+            match tokio::fs::remove_file(&path).await {
+                Ok(_) => (),
+                Err(err) if err.kind() == ErrorKind::NotFound => (),
+                Err(err) => {
+                    ceprintln!(
+                        "<s,r>error:</> failed to remove binary `{}`: {}",
+                        path.display(),
+                        err
+                    );
+                    return Err(SysexitsError::from(err));
+                }
+            }
+
+            if flags.verbose > 1 {
+                cprintln!("<s,g>✓</> Removed binary `{}`.", path.display());
+            }
+        }
+    }
+
+    for module_name in &module_names {
+        let file = asimov_root()
+            .join("modules")
+            .join(format!("{module_name}.yaml"));
+        match tokio::fs::remove_file(file).await {
+            Ok(_) => (),
+            Err(err) if err.kind() == ErrorKind::NotFound => (),
+            Err(err) => {
+                ceprintln!(
+                    "<s,r>error:</> failed to remove manifest for module `{}`: {}",
+                    module_name,
+                    err
+                );
+                return Err(SysexitsError::from(err));
+            }
+        }
+        if flags.verbose > 1 {
+            cprintln!("<s,g>✓</> Removed manifest for module `{}`.", module_name);
+        }
+    }
+
     let mut modules_to_uninstall: Vec<ModuleMetadata> = vec![];
 
     for module_name in module_names {
