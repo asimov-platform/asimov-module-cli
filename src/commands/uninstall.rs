@@ -23,11 +23,14 @@ pub async fn uninstall(
             let Some(name) = path.file_name().map(|n| n.to_string_lossy()) else {
                 continue;
             };
-            let Some(name) = name.strip_prefix("asimov-") else {
+            let mut parts = name.split('-');
+            if !parts.next().is_some_and(|prefix| prefix == "asimov") {
                 continue;
-            };
-
-            if !module_names.iter().any(|module| name.starts_with(module)) {
+            }
+            if !parts
+                .next()
+                .is_some_and(|name| module_names.iter().any(|module| name == module))
+            {
                 continue;
             }
 
