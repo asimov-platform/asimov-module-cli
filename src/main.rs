@@ -6,9 +6,9 @@ mod commands;
 mod registry;
 
 use clientele::{
-    crates::clap::{Parser, Subcommand},
     StandardOptions,
     SysexitsError::{self, *},
+    crates::clap::{Parser, Subcommand},
 };
 
 /// ASIMOV Module Command-Line Interface (CLI)
@@ -122,11 +122,6 @@ pub fn main() -> SysexitsError {
     if options.flags.license {
         print!("{}", include_str!("../UNLICENSE"));
         return EX_OK;
-    }
-
-    // Configure debug output:
-    if options.flags.debug {
-        std::env::set_var("RUST_BACKTRACE", "1");
     }
 
     // Execute the given command:
