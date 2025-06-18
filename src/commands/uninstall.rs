@@ -1,14 +1,16 @@
 // This is free and unencumbered software released into the public domain.
 
 use crate::{
-    registry::{self, ModuleMetadata},
     StandardOptions, SysexitsError,
+    registry::{self, ModuleMetadata},
 };
 use asimov_env::{
     env::Env,
     envs::{CargoEnv, PythonEnv, RubyEnv},
+    paths::asimov_root,
 };
 use color_print::{ceprintln, cprintln};
+use serde_yml::Value;
 use std::io::ErrorKind;
 
 #[tokio::main]
@@ -16,6 +18,80 @@ pub async fn uninstall(
     module_names: Vec<String>,
     flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
+    let remove_manifest = async |module_name: &str, manifest_file: &std::path::PathBuf| {
+        match tokio::fs::remove_file(manifest_file).await {
+            Ok(_) => {
+                if flags.verbose > 1 {
+                    cprintln!("<s,g>✓</> Removed manifest for module `{}`.", module_name);
+                }
+            }
+            Err(err) if err.kind() == ErrorKind::NotFound => (),
+            Err(err) => {
+                ceprintln!(
+                    "<s,r>error:</> failed to remove manifest for module `{}`: {}",
+                    module_name,
+                    err
+                );
+                return Err(SysexitsError::from(err));
+            }
+        };
+        Ok(())
+    };
+
+    for module_name in &module_names {
+        let manifest_file = asimov_root()
+            .join("modules")
+            .join(format!("{module_name}.yaml"));
+
+        let Ok(manifest) = tokio::fs::read(&manifest_file).await.inspect_err(|e| {
+            ceprintln!(
+                "<s,y>warning:</> unable to read manifest for module `{}`: {}",
+                module_name,
+                e
+            )
+        }) else {
+            continue;
+        };
+        let Ok(manifest) = serde_yml::from_slice::<Value>(&manifest).inspect_err(|e| {
+            ceprintln!(
+                "<s,r>error:</> malformed manifest for module `{}`: {} ",
+                module_name,
+                e
+            )
+        }) else {
+            remove_manifest(module_name, &manifest_file).await?;
+            continue;
+        };
+
+        let binaries = manifest["provides"]["flows"]
+            .as_sequence()
+            .into_iter()
+            .flatten()
+            .flat_map(Value::as_str);
+
+        for binary in binaries {
+            let path = asimov_root().join("libexec").join(binary);
+            match tokio::fs::remove_file(&path).await {
+                Ok(_) => {
+                    if flags.verbose > 1 {
+                        cprintln!("<s,g>✓</> Removed binary `{}`.", path.display());
+                    }
+                }
+                Err(err) if err.kind() == ErrorKind::NotFound => (),
+                Err(err) => {
+                    ceprintln!(
+                        "<s,r>error:</> failed to remove binary `{}`: {}",
+                        path.display(),
+                        err
+                    );
+                    return Err(SysexitsError::from(err));
+                }
+            }
+        }
+
+        remove_manifest(module_name, &manifest_file).await?;
+    }
+
     let mut modules_to_uninstall: Vec<ModuleMetadata> = vec![];
 
     for module_name in module_names {
