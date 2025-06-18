@@ -79,6 +79,12 @@ enum Command {
     #[clap(alias = "ls")]
     List {},
 
+    /// Resolve to modules which can handle the given URL
+    Resolve {
+        /// The URL to resolve
+        url: String,
+    },
+
     /// Uninstall a currently installed module
     Uninstall {
         /// The names of the modules to uninstall
@@ -137,6 +143,7 @@ pub fn main() -> SysexitsError {
         Command::Install { names } => commands::install(names, &options.flags),
         Command::Link { name } => commands::link(name, &options.flags),
         Command::List {} => commands::list(&options.flags),
+        Command::Resolve { url } => commands::resolve(url, &options.flags),
         Command::Uninstall { names } => commands::uninstall(names, &options.flags),
         #[cfg(feature = "unstable")]
         Command::Upgrade { names } => commands::upgrade(names, &options.flags),
