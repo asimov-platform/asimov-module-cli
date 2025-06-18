@@ -1,8 +1,8 @@
 // This is free and unencumbered software released into the public domain.
 
 use crate::{
-    registry::{self, ModuleMetadata},
     StandardOptions, SysexitsError,
+    registry::{self, ModuleMetadata},
 };
 use asimov_env::{
     env::Env,
@@ -10,6 +10,7 @@ use asimov_env::{
     paths::asimov_root,
 };
 use color_print::{ceprintln, cprintln};
+use serde_yml::Value;
 use std::io::ErrorKind;
 
 #[tokio::main]
@@ -17,23 +18,30 @@ pub async fn uninstall(
     module_names: Vec<String>,
     flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
-    if let Ok(mut module_bin_dir) = tokio::fs::read_dir(asimov_root().join("libexec")).await {
-        while let Ok(Some(entry)) = module_bin_dir.next_entry().await {
-            let path = entry.path();
-            let Some(name) = path.file_name().map(|n| n.to_string_lossy()) else {
-                continue;
-            };
-            let mut parts = name.split('-');
-            if !parts.next().is_some_and(|prefix| prefix == "asimov") {
-                continue;
-            }
-            if !parts
-                .next()
-                .is_some_and(|name| module_names.iter().any(|module| name == module))
-            {
-                continue;
-            }
+    for module_name in &module_names {
+        let manifest_file = asimov_root()
+            .join("modules")
+            .join(format!("{module_name}.yaml"));
 
+        let Ok(manifest) = tokio::fs::read(&manifest_file).await.inspect_err(|e| {
+            ceprintln!(
+                "<s,y>warning:</> unable to read manifest for module `{}`: {}",
+                module_name,
+                e
+            )
+        }) else {
+            continue;
+        };
+        let manifest: Value = serde_yml::from_slice(&manifest).unwrap();
+
+        let binaries = manifest["provides"]["flows"]
+            .as_sequence()
+            .into_iter()
+            .flatten()
+            .flat_map(Value::as_str);
+
+        for binary in binaries {
+            let path = asimov_root().join("libexec").join(binary);
             match tokio::fs::remove_file(&path).await {
                 Ok(_) => {
                     if flags.verbose > 1 {
@@ -51,13 +59,8 @@ pub async fn uninstall(
                 }
             }
         }
-    }
 
-    for module_name in &module_names {
-        let file = asimov_root()
-            .join("modules")
-            .join(format!("{module_name}.yaml"));
-        match tokio::fs::remove_file(file).await {
+        match tokio::fs::remove_file(manifest_file).await {
             Ok(_) => {
                 if flags.verbose > 1 {
                     cprintln!("<s,g>✓</> Removed manifest for module `{}`.", module_name);
