@@ -116,7 +116,7 @@ mod tests {
                 ]
             },
             "yanked": false,
-            "rust_version": "1.81"
+            "rust_version": "1.85"
         }"#;
 
         let result: Vec<String> = extract_module_names(json)

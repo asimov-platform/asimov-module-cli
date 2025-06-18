@@ -1,7 +1,7 @@
 # ASIMOV Module Command-Line Interface (CLI)
 
 [![License](https://img.shields.io/badge/license-Public%20Domain-blue.svg)](https://unlicense.org)
-[![Compatibility](https://img.shields.io/badge/rust-1.81%2B-blue)](https://blog.rust-lang.org/2024/09/05/Rust-1.81.0.html)
+[![Compatibility](https://img.shields.io/badge/rust-1.85%2B-blue)](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0/)
 [![Package](https://img.shields.io/crates/v/asimov-module-cli)](https://crates.io/crates/asimov-module-cli)
 
 🚧 _We are building in public. This is presently under heavy construction._
@@ -12,7 +12,7 @@
 
 ## 🛠️ Prerequisites
 
-- [Rust](https://rust-lang.org) 1.81+
+- [Rust](https://rust-lang.org) 1.85+ (2024 edition)
 
 ## ⬇️ Installation
 
