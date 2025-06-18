@@ -18,6 +18,26 @@ pub async fn uninstall(
     module_names: Vec<String>,
     flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
+    let remove_manifest = async |module_name: &str, manifest_file: &std::path::PathBuf| {
+        match tokio::fs::remove_file(manifest_file).await {
+            Ok(_) => {
+                if flags.verbose > 1 {
+                    cprintln!("<s,g>✓</> Removed manifest for module `{}`.", module_name);
+                }
+            }
+            Err(err) if err.kind() == ErrorKind::NotFound => (),
+            Err(err) => {
+                ceprintln!(
+                    "<s,r>error:</> failed to remove manifest for module `{}`: {}",
+                    module_name,
+                    err
+                );
+                return Err(SysexitsError::from(err));
+            }
+        };
+        Ok(())
+    };
+
     for module_name in &module_names {
         let manifest_file = asimov_root()
             .join("modules")
@@ -32,7 +52,16 @@ pub async fn uninstall(
         }) else {
             continue;
         };
-        let manifest: Value = serde_yml::from_slice(&manifest).unwrap();
+        let Ok(manifest) = serde_yml::from_slice::<Value>(&manifest).inspect_err(|e| {
+            ceprintln!(
+                "<s,r>error:</> malformed manifest for module `{}`: {} ",
+                module_name,
+                e
+            )
+        }) else {
+            remove_manifest(module_name, &manifest_file).await?;
+            continue;
+        };
 
         let binaries = manifest["provides"]["flows"]
             .as_sequence()
@@ -60,22 +89,7 @@ pub async fn uninstall(
             }
         }
 
-        match tokio::fs::remove_file(manifest_file).await {
-            Ok(_) => {
-                if flags.verbose > 1 {
-                    cprintln!("<s,g>✓</> Removed manifest for module `{}`.", module_name);
-                }
-            }
-            Err(err) if err.kind() == ErrorKind::NotFound => (),
-            Err(err) => {
-                ceprintln!(
-                    "<s,r>error:</> failed to remove manifest for module `{}`: {}",
-                    module_name,
-                    err
-                );
-                return Err(SysexitsError::from(err));
-            }
-        }
+        remove_manifest(module_name, &manifest_file).await?;
     }
 
     let mut modules_to_uninstall: Vec<ModuleMetadata> = vec![];
