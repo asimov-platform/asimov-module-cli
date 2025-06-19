@@ -3,11 +3,11 @@
 use std::{error::Error, path::PathBuf};
 
 use crate::{
-    registry::{self, ModuleMetadata},
     StandardOptions, SysexitsError,
+    registry::{self, ModuleMetadata},
 };
 use asimov_env::paths::asimov_root;
-use asimov_module::resolve::ResolverBuilder;
+use asimov_module::{models::ModuleManifest, resolve::ResolverBuilder};
 use color_print::{ceprintln, cprint, cprintln};
 
 #[tokio::main]
@@ -24,16 +24,20 @@ pub async fn resolve(url: impl AsRef<str>, _flags: &StandardOptions) -> Result<(
             continue;
         }
         let path = entry.path();
-        let name = path.to_string_lossy();
-        if !name.ends_with(".yaml") && !name.ends_with(".yml") {
+        let filename = entry.file_name();
+        let filename = filename.to_string_lossy();
+        if !filename.ends_with(".yaml") && !filename.ends_with(".yml") {
             continue;
         }
-        if let Err(e) = import_module_manifest(&mut builder, &path) {
+        let file = std::fs::File::open(&path)?;
+        let manifest: ModuleManifest = serde_yml::from_reader(file).map_err(|e| {
             ceprintln!(
-                "<y,s>warning:</> skipping module manifest at {}: {e}",
+                "<s,y>warning:</> skipping invalid module manifest at `{}`: {e}",
                 path.display()
-            )
-        }
+            );
+            SysexitsError::EX_UNAVAILABLE
+        })?;
+        builder.insert_manifest(&manifest)?;
     }
 
     let resolver = builder.build()?;
@@ -52,52 +56,6 @@ pub async fn resolve(url: impl AsRef<str>, _flags: &StandardOptions) -> Result<(
         // cprintln!("{}", module.name);
 
         cprintln!("{}", module.name);
-    }
-
-    Ok(())
-}
-
-fn import_module_manifest(
-    builder: &mut ResolverBuilder,
-    path: &PathBuf,
-) -> Result<(), Box<dyn Error>> {
-    let manifest = std::fs::File::open(path)?;
-    let module: serde_yml::Mapping = serde_yml::from_reader(manifest)?;
-    let name = &module["name"]
-        .as_str()
-        .ok_or("Invalid module manifest: no name")?;
-
-    if let Some(protocols) = module["handles"]["url_protocols"].as_sequence() {
-        for protocol in protocols {
-            builder.insert_protocol(
-                name,
-                protocol
-                    .as_str()
-                    .ok_or("Invalid module manifest: malformed handles.url_protocols")?,
-            )?
-        }
-    }
-
-    if let Some(prefixes) = module["handles"]["url_prefixes"].as_sequence() {
-        for prefix in prefixes {
-            builder.insert_prefix(
-                name,
-                prefix
-                    .as_str()
-                    .ok_or("Invalid module manifest: malformed handles.url_prefixes")?,
-            )?
-        }
-    }
-
-    if let Some(patterns) = module["handles"]["url_patterns"].as_sequence() {
-        for pattern in patterns {
-            builder.insert_pattern(
-                name,
-                pattern
-                    .as_str()
-                    .ok_or("Invalid module manifest: malformed handles.url_patterns")?,
-            )?
-        }
     }
 
     Ok(())
