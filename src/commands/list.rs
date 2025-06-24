@@ -17,8 +17,14 @@ pub async fn list(flags: &StandardOptions) -> Result<(), SysexitsError> {
             match module_dir.next_entry().await {
                 Ok(None) => break,
                 Ok(Some(entry)) => {
-                    let filename = entry.file_name().to_string_lossy().to_string();
-                    let name = filename.trim_end_matches(".yaml").trim_end_matches(".yml");
+                    let Some(name) = entry
+                        .path()
+                        .file_stem()
+                        .map(|stem| stem.to_string_lossy().to_string())
+                    else {
+                        continue;
+                    };
+
                     if flags.verbose > 0 {
                         cprintln!("<s,g>✓</> {}\t\t", name);
                     } else {
