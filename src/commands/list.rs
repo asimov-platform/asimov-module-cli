@@ -7,7 +7,9 @@ use color_print::{ceprintln, cprint, cprintln};
 #[tokio::main]
 pub async fn list(flags: &StandardOptions) -> Result<(), SysexitsError> {
     let module_dir_path = asimov_root().join("modules");
-    if module_dir_path.exists() && module_dir_path.is_dir() {
+
+    let md = tokio::fs::metadata(&module_dir_path).await;
+    if md.is_ok_and(|md| md.is_dir()) {
         let mut module_dir = tokio::fs::read_dir(module_dir_path)
             .await
             .inspect_err(|e| {
