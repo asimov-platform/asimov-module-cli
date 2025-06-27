@@ -1,6 +1,10 @@
 // This is free and unencumbered software released into the public domain.
 
-use crate::{registry, StandardOptions, SysexitsError};
+use crate::{
+    StandardOptions,
+    SysexitsError::{self, *},
+    registry,
+};
 
 #[tokio::main]
 pub async fn link(
@@ -15,7 +19,7 @@ pub async fn link(
         }
         None => {
             eprintln!("unknown module: {}", module_name);
-            Err(SysexitsError::EX_UNAVAILABLE)
+            Err(EX_UNAVAILABLE)
         }
     }
 }

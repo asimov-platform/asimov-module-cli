@@ -12,9 +12,7 @@ pub async fn list(flags: &StandardOptions) -> Result<(), SysexitsError> {
     if md.is_ok_and(|md| md.is_dir()) {
         let mut module_dir = tokio::fs::read_dir(module_dir_path)
             .await
-            .inspect_err(|e| {
-                ceprintln!("<s,r>error:</> failed to read module manifest directory: {e}")
-            })?;
+            .inspect_err(|e| tracing::error!("failed to read module manifest directory: {e}"))?;
         loop {
             match module_dir.next_entry().await {
                 Ok(None) => break,
@@ -38,8 +36,16 @@ pub async fn list(flags: &StandardOptions) -> Result<(), SysexitsError> {
         }
     }
 
-    for module in registry::fetch_modules().await? {
-        let is_installed = module.is_installed()?;
+    for module in registry::fetch_modules()
+        .await
+        .inspect_err(|e| tracing::error!("failed to fetch module registry: {e}"))?
+    {
+        let is_installed = module.is_installed().inspect_err(|e| {
+            tracing::error!(
+                "failed to check if module '{}' is installed: {e}",
+                module.name,
+            )
+        })?;
         if is_installed {
             cprint!("<s><g>✓</></> ");
         } else {
