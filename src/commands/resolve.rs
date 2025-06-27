@@ -8,12 +8,12 @@ use crate::{
     registry::{self, ModuleMetadata},
 };
 use asimov_env::paths::asimov_root;
-use asimov_module::{models::ModuleManifest, resolve::ResolverBuilder};
+use asimov_module::{models::ModuleManifest, resolve::Resolver};
 use color_print::{ceprintln, cprint, cprintln};
 
 #[tokio::main]
 pub async fn resolve(url: impl AsRef<str>, _flags: &StandardOptions) -> Result<(), SysexitsError> {
-    let mut builder = ResolverBuilder::new();
+    let mut resolver = Resolver::new();
 
     let dir = std::fs::read_dir(asimov_root().join("modules"))
         .inspect_err(|e| tracing::error!("failed to read module manifest directory: {e}"))?;
@@ -49,14 +49,10 @@ pub async fn resolve(url: impl AsRef<str>, _flags: &StandardOptions) -> Result<(
             );
             EX_UNAVAILABLE
         })?;
-        builder.insert_manifest(&manifest).inspect_err(|e| {
+        resolver.insert_manifest(&manifest).inspect_err(|e| {
             tracing::error!("failed to insert manifest from '{}': {e}", path.display())
         })?;
     }
-
-    let resolver = builder
-        .build()
-        .inspect_err(|e| tracing::error!("failed to build resolver: {e}"))?;
 
     let modules = resolver.resolve(url.as_ref()).inspect_err(|e| {
         tracing::error!("failed to resolve modules for URL '{}': {e}", url.as_ref())
