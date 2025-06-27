@@ -2,7 +2,7 @@
 
 [package]
 name = "asimov-module-cli"
-version = "25.0.0-dev.3"
+version = "25.0.0-dev.4"
 authors = ["ASIMOV Protocol <support@asimov.so>"]
 edition = "2024"
 rust-version = "1.85"
@@ -34,7 +34,7 @@ indoc = "2.0"
 temp-dir = "0.1"
 
 [dependencies]
-asimov-env = { version = "25.0.0-dev.3" }
+asimov-env = { version = "25.0.0-dev.4" }
 asimov-module = { version = "25.0.0-dev.12" }
 clap = { version = "4.5", default-features = false }
 clientele = { version = "0.3", features = ["serde-json", "tokio"] }
