@@ -2,7 +2,7 @@
 
 use asimov_env::paths::asimov_root;
 use clientele::SysexitsError::{self, *};
-use color_print::{ceprintln, cprintln};
+use color_print::cprintln;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::{error::Error, fs::Permissions, path::Path};
@@ -35,15 +35,12 @@ pub async fn fetch_latest_release(module_name: &str) -> Result<String, SysexitsE
     let client = crate::registry::http::http_client();
 
     let response = client.get(url).send().await.map_err(|e| {
-        ceprintln!("<s,r>error:</> request failed: {}", e);
+        tracing::error!("request failed: {e}");
         EX_UNAVAILABLE
     })?;
 
     if response.status() != 200 {
-        ceprintln!(
-            "<s,r>error:</> request failed: HTTP status {}",
-            response.status()
-        );
+        tracing::error!("request failed: HTTP status {}", response.status());
         return Err(EX_UNAVAILABLE);
     }
 
@@ -51,7 +48,7 @@ pub async fn fetch_latest_release(module_name: &str) -> Result<String, SysexitsE
         .json::<GitHubRelease>()
         .await
         .map_err(|e| {
-            ceprintln!("<s,r>error:</> failed to read the response: {}", e);
+            tracing::error!("failed to read the response: {e}");
             EX_UNAVAILABLE
         })
         .map(|release| release.name)
@@ -67,13 +64,13 @@ pub async fn install_from_github(
         cprintln!("<s,c>»</> Searching for assets on GitHub...");
     }
     let release = fetch_release(module_name, version).await.inspect_err(|e| {
-        ceprintln!(
-            "<s,r>error:</> failed to fetch release information for module '{module_name}' version '{version}': {e}"
+        tracing::error!(
+            "failed to fetch release information for module '{module_name}' version '{version}': {e}"
         )
     })?;
     let Some(asset) = find_matching_asset(&release.assets, module_name, &platform) else {
-        ceprintln!(
-            "<s,r>error:</> no matching asset found for platform {}-{}",
+        tracing::error!(
+            "no matching asset found for platform {}-{}",
             platform.os,
             platform.arch
         );
@@ -83,14 +80,14 @@ pub async fn install_from_github(
     let temp_dir = tempfile::Builder::new()
         .prefix("asimov-module-cli-")
         .tempdir()
-        .inspect_err(|e| ceprintln!("<s,r>error:</> failed to create temporary directory: {e}"))?;
+        .inspect_err(|e| tracing::error!("failed to create temporary directory: {e}"))?;
 
     if verbosity > 1 {
         cprintln!("<s,c>»</> Downloading asset from GitHub...");
     }
     let download = download_asset(asset, temp_dir.path())
         .await
-        .inspect_err(|e| ceprintln!("<s,r>error:</> failed to download asset: {e}"))?;
+        .inspect_err(|e| tracing::error!("failed to download asset: {e}"))?;
     if verbosity > 0 {
         cprintln!("<s,g>✓</> Downloaded asset `{}`", asset.name);
     }
@@ -107,13 +104,13 @@ pub async fn install_from_github(
             }
             verify_checksum(&download, &checksum)
                 .await
-                .inspect_err(|e| ceprintln!("<s,r>error:</> checksum verification failed: {e}"))?;
+                .inspect_err(|e| tracing::error!("checksum verification failed: {e}"))?;
             if verbosity > 0 {
                 cprintln!("<s,g>✓</> Verified checksum");
             }
         }
         Err(err) => {
-            ceprintln!("<s,r>error:</> error while fetching checksum file: {}", err);
+            tracing::error!("error while fetching checksum file: {err}");
             return Err(EX_UNAVAILABLE);
         }
     }
@@ -122,7 +119,7 @@ pub async fn install_from_github(
         cprintln!("<s,c>»</> Installing binaries...");
     }
     install_binaries(&download, verbosity).await.map_err(|e| {
-        ceprintln!("<s,r>error:</> failed to install binaries: {}", e);
+        tracing::error!("failed to install binaries: {}", e);
         EX_UNAVAILABLE
     })?;
 
@@ -137,8 +134,8 @@ pub async fn install_module_manifest(
     tokio::fs::create_dir_all(&module_dir)
         .await
         .inspect_err(|e| {
-            ceprintln!(
-                "<s,r>error:</> failed to create module directory '{}': {e}",
+            tracing::error!(
+                "failed to create module directory '{}': {e}",
                 module_dir.display()
             )
         })?;
@@ -153,20 +150,20 @@ pub async fn install_module_manifest(
         .send()
         .await
         .map_err(|e| {
-            ceprintln!("<s,r>error:</> failed to fetch module manifest from '{url}': {e}");
+            tracing::error!("failed to fetch module manifest from '{url}': {e}");
             EX_UNAVAILABLE
         })?;
 
     if response.status() != 200 {
-        ceprintln!(
-            "<s,r>error:</> failed to fetch module manifest: HTTP status {}",
+        tracing::error!(
+            "failed to fetch module manifest: HTTP status {}",
             response.status()
         );
         return Err(EX_UNAVAILABLE);
     }
 
     let manifest = response.bytes().await.map_err(|e| {
-        ceprintln!("<s,r>error:</> failed to read module manifest response: {e}");
+        tracing::error!("failed to read module manifest response: {e}");
         EX_UNAVAILABLE
     })?;
 
@@ -174,16 +171,16 @@ pub async fn install_module_manifest(
     let mut manifest_file = tokio::fs::File::create(&manifest_filename)
         .await
         .inspect_err(|e| {
-            ceprintln!(
-                "<s,r>error:</> failed to create manifest file '{}': {e}",
+            tracing::error!(
+                "failed to create manifest file '{}': {e}",
                 manifest_filename.display()
             )
         })?;
 
     use tokio::io::AsyncWriteExt as _;
     manifest_file.write_all(&manifest).await.inspect_err(|e| {
-        ceprintln!(
-            "<s,r>error:</> failed to write manifest file '{}': {e}",
+        tracing::error!(
+            "failed to write manifest file '{}': {e}",
             manifest_filename.display()
         )
     })?;
@@ -402,8 +399,8 @@ async fn install_binaries(src_asset: &Path, verbosity: u8) -> Result<(), Box<dyn
     tokio::fs::create_dir_all(&install_dir)
         .await
         .inspect_err(|e| {
-            ceprintln!(
-                "<s,r>error:</> failed to create install directory '{}': {e}",
+            tracing::error!(
+                "failed to create install directory '{}': {e}",
                 install_dir.display()
             )
         })?;
@@ -416,8 +413,8 @@ async fn install_binaries(src_asset: &Path, verbosity: u8) -> Result<(), Box<dyn
     tokio::fs::create_dir_all(&temp_extract_dir)
         .await
         .inspect_err(|e| {
-            ceprintln!(
-                "<s,r>error:</> failed to create extraction directory '{}': {e}",
+            tracing::error!(
+                "failed to create extraction directory '{}': {e}",
                 temp_extract_dir.display()
             )
         })?;
@@ -443,13 +440,13 @@ async fn install_binaries(src_asset: &Path, verbosity: u8) -> Result<(), Box<dyn
         }
     })
     .await?
-    .inspect_err(|e| ceprintln!("<s,r>error:</> failed to extract archive: {e}"))?;
+    .inspect_err(|e| tracing::error!("failed to extract archive: {e}"))?;
 
     let mut read_dir = tokio::fs::read_dir(&temp_extract_dir)
         .await
         .inspect_err(|e| {
-            ceprintln!(
-                "<s,r>error:</> failed to read extraction directory '{}': {e}",
+            tracing::error!(
+                "failed to read extraction directory '{}': {e}",
                 temp_extract_dir.display()
             )
         })?;
@@ -457,14 +454,14 @@ async fn install_binaries(src_asset: &Path, verbosity: u8) -> Result<(), Box<dyn
     while let Some(entry) = read_dir
         .next_entry()
         .await
-        .inspect_err(|e| ceprintln!("<s,r>error:</> failed to read directory entry: {}", e))?
+        .inspect_err(|e| tracing::error!("failed to read directory entry: {}", e))?
     {
         if !entry
             .file_type()
             .await
             .inspect_err(|e| {
-                ceprintln!(
-                    "<s,r>error:</> failed to get file type for '{}': {e}",
+                tracing::error!(
+                    "failed to get file type for '{}': {e}",
                     entry.path().display(),
                 )
             })?
@@ -474,21 +471,21 @@ async fn install_binaries(src_asset: &Path, verbosity: u8) -> Result<(), Box<dyn
         }
         let name = entry.file_name();
         let mut src = tokio::fs::File::open(entry.path()).await.inspect_err(|e| {
-            ceprintln!(
-                "<s,r>error:</> failed to open source file '{}': {e}",
+            tracing::error!(
+                "failed to open source file '{}': {e}",
                 entry.path().display()
             )
         })?;
         let dst_path = install_dir.join(&name);
         let mut dst = tokio::fs::File::create(&dst_path).await.inspect_err(|e| {
-            ceprintln!(
-                "<s,r>error:</> failed to create destination file '{}': {e}",
+            tracing::error!(
+                "failed to create destination file '{}': {e}",
                 dst_path.display()
             )
         })?;
         tokio::io::copy(&mut src, &mut dst).await.inspect_err(|e| {
-            ceprintln!(
-                "<s,r>error:</> failed to copy file from '{}' to '{}': {e}",
+            tracing::error!(
+                "failed to copy file from '{}' to '{}': {e}",
                 entry.path().display(),
                 dst_path.display(),
             )
@@ -500,8 +497,8 @@ async fn install_binaries(src_asset: &Path, verbosity: u8) -> Result<(), Box<dyn
             tokio::fs::set_permissions(&dst_path, Permissions::from_mode(0o755))
                 .await
                 .inspect_err(|e| {
-                    ceprintln!(
-                        "<s,r>error:</> failed to set permissions for '{}': {e}",
+                    tracing::error!(
+                        "failed to set permissions for '{}': {e}",
                         dst_path.display()
                     )
                 })?;

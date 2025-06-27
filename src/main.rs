@@ -104,6 +104,8 @@ pub fn main() -> SysexitsError {
     // Load environment variables from `.env`:
     clientele::dotenv().ok();
 
+    tracing_subscriber::fmt::init();
+
     // Expand wildcards and @argfiles:
     let Ok(args) = clientele::args_os() else {
         return EX_USAGE;

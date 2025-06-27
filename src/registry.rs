@@ -14,7 +14,6 @@ use asimov_env::{
     env::Env,
     envs::{PythonEnv, RubyEnv},
 };
-use color_print::ceprintln;
 use derive_more::Display;
 use tokio::task;
 
@@ -76,11 +75,11 @@ pub async fn fetch_modules() -> Result<Vec<ModuleMetadata>, SysexitsError> {
         let result = registry::crates::fetch_current_modules()
             .await
             .map_err(|e| {
-                ceprintln!("<s,r>error:</> failed to fetch Rust module metadata: {}", e);
+                tracing::error!("failed to fetch Rust module metadata: {e}");
                 EX_UNAVAILABLE
             })?;
         registry::crates::extract_module_names(result).map_err(|e| {
-            ceprintln!("<s,r>error:</> failed to parse Rust module metadata: {}", e);
+            tracing::error!("failed to parse Rust module metadata: {e}");
             EX_DATAERR
         })
     });
@@ -88,27 +87,21 @@ pub async fn fetch_modules() -> Result<Vec<ModuleMetadata>, SysexitsError> {
         let result = registry::rubygems::fetch_current_modules()
             .await
             .map_err(|e| {
-                ceprintln!("<s,r>error:</> failed to fetch Ruby module metadata: {}", e);
+                tracing::error!("failed to fetch Ruby module metadata: {e}");
                 EX_UNAVAILABLE
             })?;
         registry::rubygems::extract_module_names(result).map_err(|e| {
-            ceprintln!("<s,r>error:</> failed to parse Ruby module metadata: {}", e);
+            tracing::error!("failed to parse Ruby module metadata: {e}");
             EX_DATAERR
         })
     });
     let python_task = task::spawn(async {
         let result = registry::pypi::fetch_current_modules().await.map_err(|e| {
-            ceprintln!(
-                "<s,r>error:</> failed to fetch Python module metadata: {}",
-                e
-            );
+            tracing::error!("failed to fetch Python module metadata: {e}");
             EX_UNAVAILABLE
         })?;
         registry::pypi::extract_module_names(result).map_err(|e| {
-            ceprintln!(
-                "<s,r>error:</> failed to parse Python module metadata: {}",
-                e
-            );
+            tracing::error!("failed to parse Python module metadata: {e}");
             EX_DATAERR
         })
     });
@@ -116,15 +109,15 @@ pub async fn fetch_modules() -> Result<Vec<ModuleMetadata>, SysexitsError> {
     // Await all tasks; note the double ?? to handle both `JoinError` and the
     // `Result` from the task:
     let rust_modules = rust_task.await.map_err(|e| {
-        ceprintln!("<s,r>error:</> failed to join Rust module task: {}", e);
+        tracing::error!("failed to join Rust module task: {e}");
         EX_SOFTWARE
     })??;
     let ruby_modules = ruby_task.await.map_err(|e| {
-        ceprintln!("<s,r>error:</> failed to join Ruby module task: {}", e);
+        tracing::error!("failed to join Ruby module task: {e}");
         EX_SOFTWARE
     })??;
     let python_modules = python_task.await.map_err(|e| {
-        ceprintln!("<s,r>error:</> failed to join Python module task: {}", e);
+        tracing::error!("failed to join Python module task: {e}");
         EX_SOFTWARE
     })??;
 

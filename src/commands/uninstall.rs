@@ -27,8 +27,8 @@ pub async fn uninstall(
             }
             Err(err) if err.kind() == ErrorKind::NotFound => (),
             Err(err) => {
-                ceprintln!(
-                    "<s,r>error:</> failed to remove manifest for module `{}`: {}",
+                tracing::error!(
+                    "failed to remove manifest for module `{}`: {}",
                     module_name,
                     err
                 );
@@ -44,21 +44,13 @@ pub async fn uninstall(
             .join(format!("{module_name}.yaml"));
 
         let Ok(manifest) = tokio::fs::read(&manifest_file).await.inspect_err(|e| {
-            ceprintln!(
-                "<s,y>warning:</> unable to read manifest for module `{}`: {}",
-                module_name,
-                e
-            )
+            tracing::warn!("unable to read manifest for module `{module_name}`: {e}")
         }) else {
             continue;
         };
-        let Ok(manifest) = serde_yml::from_slice::<Value>(&manifest).inspect_err(|e| {
-            ceprintln!(
-                "<s,r>error:</> malformed manifest for module `{}`: {} ",
-                module_name,
-                e
-            )
-        }) else {
+        let Ok(manifest) = serde_yml::from_slice::<Value>(&manifest)
+            .inspect_err(|e| tracing::error!("malformed manifest for module `{module_name}`: {e}"))
+        else {
             remove_manifest(module_name, &manifest_file).await?;
             continue;
         };
@@ -79,11 +71,7 @@ pub async fn uninstall(
                 }
                 Err(err) if err.kind() == ErrorKind::NotFound => (),
                 Err(err) => {
-                    ceprintln!(
-                        "<s,r>error:</> failed to remove binary `{}`: {}",
-                        path.display(),
-                        err
-                    );
+                    tracing::error!("failed to remove binary `{}`: {err}", path.display());
                     return Err(SysexitsError::from(err));
                 }
             }
@@ -106,7 +94,7 @@ pub async fn uninstall(
                 }
             }
             None => {
-                ceprintln!("<s><r>error:</></> unknown module: {}", module_name);
+                tracing::error!("unknown module: {module_name}");
                 return Err(SysexitsError::EX_UNAVAILABLE);
             }
         }
@@ -129,24 +117,20 @@ pub async fn uninstall(
 
         match result {
             Err(error) if error.kind() == ErrorKind::NotFound => {
-                ceprintln!(
-                    "<s><r>error:</></> failed to uninstall module `{}`: missing {} environment",
+                tracing::error!(
+                    "failed to uninstall module `{}`: missing {} environment",
                     module.name,
                     module.r#type.to_string()
                 );
                 return Err(SysexitsError::EX_UNAVAILABLE);
             }
             Err(error) => {
-                ceprintln!(
-                    "<s><r>error:</></> failed to uninstall module `{}`: {}",
-                    module.name,
-                    error
-                );
+                tracing::error!("failed to uninstall module `{}`: {}", module.name, error);
                 return Err(SysexitsError::EX_OSERR);
             }
             Ok(status) if !status.success() => {
-                ceprintln!(
-                    "<s><r>error:</></> failed to uninstall module `{}`: exit code {}",
+                tracing::error!(
+                    "failed to uninstall module `{}`: exit code {}",
                     module.name,
                     status.code().unwrap_or_default()
                 );

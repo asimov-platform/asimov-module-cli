@@ -57,6 +57,8 @@ zip = "4"
 flate2 = "1"
 tar = "0.4"
 serde_yml = { version = "0.0.12", default-features = false }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
+tracing = { version = "0.1", default-features = false, features = ["std"] }
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 openssl = { version = "0.10", features = ["vendored"] }

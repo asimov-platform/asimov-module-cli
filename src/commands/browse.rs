@@ -15,9 +15,8 @@ pub async fn browse(
 
     match registry::fetch_module(module_name).await {
         Some(module) => {
-            open::that(&module.url).inspect_err(|e| {
-                eprintln!("failed to open URL '{}': {}", module.url, e);
-            })?;
+            open::that(&module.url)
+                .inspect_err(|e| tracing::error!("failed to open URL '{}': {e}", module.url))?;
             Ok(())
         }
         None => {
