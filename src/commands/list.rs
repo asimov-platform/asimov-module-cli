@@ -38,8 +38,18 @@ pub async fn list(flags: &StandardOptions) -> Result<(), SysexitsError> {
         }
     }
 
-    for module in registry::fetch_modules().await? {
-        let is_installed = module.is_installed()?;
+    for module in registry::fetch_modules().await.map_err(|e| {
+        ceprintln!("<s,r>error:</> failed to fetch module registry: {}", e);
+        e
+    })? {
+        let is_installed = module.is_installed().map_err(|e| {
+            ceprintln!(
+                "<s,r>error:</> failed to check if module '{}' is installed: {}",
+                module.name,
+                e
+            );
+            e
+        })?;
         if is_installed {
             cprint!("<s><g>✓</></> ");
         } else {

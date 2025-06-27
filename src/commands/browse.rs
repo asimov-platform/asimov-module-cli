@@ -1,6 +1,10 @@
 // This is free and unencumbered software released into the public domain.
 
-use crate::{registry, StandardOptions, SysexitsError};
+use crate::{
+    StandardOptions,
+    SysexitsError::{self, *},
+    registry,
+};
 
 #[tokio::main]
 pub async fn browse(
@@ -11,12 +15,14 @@ pub async fn browse(
 
     match registry::fetch_module(module_name).await {
         Some(module) => {
-            open::that(module.url)?;
+            open::that(&module.url).inspect_err(|e| {
+                eprintln!("failed to open URL '{}': {}", module.url, e);
+            })?;
             Ok(())
         }
         None => {
             eprintln!("unknown module: {}", module_name);
-            Err(SysexitsError::EX_UNAVAILABLE)
+            Err(EX_UNAVAILABLE)
         }
     }
 }
