@@ -1,6 +1,6 @@
 // This is free and unencumbered software released into the public domain.
 
-use crate::{registry, StandardOptions, SysexitsError};
+use crate::{StandardOptions, SysexitsError, registry};
 
 pub fn disable(module_names: Vec<String>, _flags: &StandardOptions) -> Result<(), SysexitsError> {
     for module_name in module_names {
