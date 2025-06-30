@@ -5,7 +5,7 @@ use clientele::SysexitsError::{self, *};
 use color_print::cprintln;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use std::{error::Error, fs::Permissions, path::Path};
+use std::{error::Error, path::Path};
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 
 #[derive(Debug)]
@@ -493,6 +493,7 @@ async fn install_binaries(src_asset: &Path, verbosity: u8) -> Result<(), Box<dyn
 
         #[cfg(unix)]
         {
+            use std::fs::Permissions;
             use std::os::unix::fs::PermissionsExt;
             tokio::fs::set_permissions(&dst_path, Permissions::from_mode(0o755))
                 .await
