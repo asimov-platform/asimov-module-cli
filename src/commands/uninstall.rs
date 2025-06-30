@@ -94,8 +94,8 @@ pub async fn uninstall(
                 }
             }
             None => {
-                tracing::error!("unknown module: {module_name}");
-                return Err(SysexitsError::EX_UNAVAILABLE);
+                tracing::debug!("skipping registry uninstall for unknown module: {module_name}");
+                continue;
             }
         }
     }
