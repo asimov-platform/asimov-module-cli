@@ -1,6 +1,6 @@
 // This is free and unencumbered software released into the public domain.
 
-use super::{http::http_client, ModuleMetadata, ModuleType};
+use super::{ModuleMetadata, ModuleType, http::http_client};
 use reqwest::Error;
 use serde::{Deserialize, Serialize};
 
