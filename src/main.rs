@@ -104,8 +104,6 @@ pub fn main() -> SysexitsError {
     // Load environment variables from `.env`:
     clientele::dotenv().ok();
 
-    tracing_subscriber::fmt::init();
-
     // Expand wildcards and @argfiles:
     let Ok(args) = clientele::args_os() else {
         return EX_USAGE;
@@ -113,6 +111,8 @@ pub fn main() -> SysexitsError {
 
     // Parse command-line options:
     let options = Options::parse_from(&args);
+
+    asimov_module::init_tracing_subscriber(&options.flags).expect("failed to initialize logging");
 
     // Print the version, if requested:
     if options.flags.version {
