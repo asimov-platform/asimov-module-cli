@@ -79,7 +79,7 @@ enum Command {
     #[clap(alias = "ls")]
     List {},
 
-    /// Resolve to modules which can handle the given URL
+    /// Resolve a given URL to modules which can handle it
     Resolve {
         /// The URL to resolve
         url: String,
