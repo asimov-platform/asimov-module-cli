@@ -12,7 +12,7 @@ use color_print::ceprintln;
 #[tokio::main]
 pub async fn link(
     module_name: impl AsRef<str>,
-    flags: &StandardOptions,
+    _flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
     let module_name = module_name.as_ref();
 
@@ -22,9 +22,7 @@ pub async fn link(
 
     // try installed modules
     if let Ok(manifest) = tokio::fs::read(&manifest_path).await.inspect_err(|e| {
-        if flags.verbose > 1 {
-            tracing::warn!("install not found for `{module_name}`, failed to read manifest: {e}")
-        }
+        tracing::warn!("install not found for `{module_name}`, failed to read manifest: {e}")
     }) {
         let manifest: ModuleManifest = serde_yml::from_slice(&manifest).map_err(|e| {
             tracing::error!("failed parse manifest for module `{module_name}`: {e}");
