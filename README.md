@@ -8,6 +8,9 @@
 
 ## ✨ Features
 
+ASIMOV Module CLI is a tool for managing locally installed [ASIMOV Modules].
+
+- Install, inspect, and uninstall [ASIMOV Modules].
 - 100% free and unencumbered public domain software.
 
 ## 🛠️ Prerequisites
@@ -15,6 +18,17 @@
 - [Rust](https://rust-lang.org) 1.85+ (2024 edition)
 
 ## ⬇️ Installation
+
+The intended installation method is through Homebrew.
+
+### Installation via Homebrew
+
+Module CLI can be installed along [ASIMOV CLI](https://github.com/asimov-platform/asimov-cli) through Homebrew:
+
+```bash
+brew tap asimov-platform/tap
+brew install asimov-cli
+```
 
 ### Installation from Source Code
 
@@ -26,7 +40,49 @@ cargo install asimov-module-cli --version 25.0.0-dev.4
 
 ## 👉 Examples
 
-TBD
+If you installed through Homebrew you're able to invoke the module as `asimov module`, otherwise call the `asimov-module` executable directly.
+
+### Install a module
+
+```bash
+asimov module install http
+```
+
+### Inspect a module
+
+You can print package pages that the module's manifest defines, including but not limited to source code repository and other documentation:
+
+```console
+$ asimov module link openai
+https://rubygems.org/gems/asimov-openai-module
+```
+
+Or you can directly open in a web browser:
+
+```bash
+asimov module browse openai
+```
+
+### List modules
+
+Lists available and installed modules:
+
+```bash
+asimov module list
+```
+
+### Find out which module(s) are able to handle a resource
+
+```console
+$ asimov module resolve https://asimov.sh/
+http
+```
+
+### Uninstall a module
+
+```bash
+asimov module uninstall http
+```
 
 ## 📚 Reference
 
@@ -40,6 +96,7 @@ git clone https://github.com/asimov-platform/asimov-module-cli.git
 
 ---
 
+[ASIMOV Modules](https://asimov.directory/modules)
 [![Share on X](https://img.shields.io/badge/share%20on-x-03A9F4?logo=x)](https://x.com/intent/post?url=https://github.com/asimov-platform/asimov-module-cli&text=ASIMOV%20Module%20Command-Line%20Interface%20%28CLI%29)
 [![Share on Reddit](https://img.shields.io/badge/share%20on-reddit-red?logo=reddit)](https://reddit.com/submit?url=https://github.com/asimov-platform/asimov-module-cli&title=ASIMOV%20Module%20Command-Line%20Interface%20%28CLI%29)
 [![Share on Hacker News](https://img.shields.io/badge/share%20on-hn-orange?logo=ycombinator)](https://news.ycombinator.com/submitlink?u=https://github.com/asimov-platform/asimov-module-cli&t=ASIMOV%20Module%20Command-Line%20Interface%20%28CLI%29)
