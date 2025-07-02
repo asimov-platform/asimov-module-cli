@@ -35,7 +35,7 @@ brew install asimov-cli
 #### Installation via Cargo
 
 ```bash
-cargo install asimov-module-cli --version 25.0.0-dev.4
+cargo install asimov-module-cli --version 25.0.0-dev.5
 ```
 
 ## 👉 Examples
