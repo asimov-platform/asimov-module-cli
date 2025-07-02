@@ -2,8 +2,7 @@
 
 #![deny(unsafe_code)]
 
-mod commands;
-mod registry;
+use asimov_module_cli::commands;
 
 use clientele::{
     StandardOptions,
