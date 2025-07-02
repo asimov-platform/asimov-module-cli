@@ -32,6 +32,7 @@ pub async fn link(
         })?;
 
         let mut links = manifest.links;
+        crate::sort_links(&manifest.name, &mut links);
 
         for link in links {
             println!("{link}");

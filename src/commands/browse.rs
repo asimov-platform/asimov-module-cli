@@ -33,6 +33,8 @@ pub async fn browse(
         })?;
 
         let mut links = manifest.links;
+        crate::sort_links(&manifest.name, &mut links);
+
         if let Some(link) = links.first() {
             open::that(link)
                 .inspect_err(|e| tracing::error!("failed to open URL '{link}': {e}"))?;
