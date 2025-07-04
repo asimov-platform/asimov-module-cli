@@ -10,10 +10,10 @@ pub fn find(module_name: impl AsRef<str>, _flags: &StandardOptions) -> Result<()
         Some(command) => {
             println!("{}", command.path.display());
             Ok(())
-        }
+        },
         None => {
             eprintln!("unknown module: {}", module_name);
             Err(SysexitsError::EX_UNAVAILABLE)
-        }
+        },
     }
 }
