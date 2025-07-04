@@ -59,17 +59,6 @@ pub async fn resolve(url: impl AsRef<str>, _flags: &StandardOptions) -> Result<(
     })?;
 
     for module in modules {
-        // let Some(module) = crate::registry::fetch_module(&module.name).await else {
-        //     continue;
-        // };
-
-        // if module.is_installed()? {
-        //     cprint!("<g,s>✓</> ");
-        // } else {
-        //     cprint!("<r,s>✗</> ");
-        // }
-        // cprintln!("{}", module.name);
-
         cprintln!("{}", module.name);
     }
 

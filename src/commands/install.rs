@@ -61,7 +61,7 @@ pub async fn install(
                         "<s,g>✓</> Installed the module `{module_name}` from GitHub releases."
                     );
                 }
-            }
+            },
             Err(err) => {
                 tracing::warn!(
                     "Install from GitHub releases failed: {err}, trying install from registry..."
@@ -74,11 +74,11 @@ pub async fn install(
                         } else {
                             continue;
                         }
-                    }
+                    },
                     None => {
                         tracing::error!("unknown module: {module_name}");
                         return Err(EX_UNAVAILABLE);
-                    }
+                    },
                 };
 
                 use registry::ModuleType::*;
@@ -96,7 +96,7 @@ pub async fn install(
                     Ruby => RubyEnv::default().install_module(&module.name, Some(venv_verbosity)),
                     Python => {
                         PythonEnv::default().install_module(&module.name, Some(venv_verbosity))
-                    }
+                    },
                 };
 
                 match result {
@@ -107,11 +107,11 @@ pub async fn install(
                             module.r#type.to_string()
                         );
                         return Err(EX_UNAVAILABLE);
-                    }
+                    },
                     Err(err) => {
                         tracing::error!("failed to install module `{}`: {err}", module.name);
                         return Err(EX_OSERR);
-                    }
+                    },
                     Ok(status) if !status.success() => {
                         tracing::error!(
                             "failed to install module `{}`: exit code {}",
@@ -119,7 +119,7 @@ pub async fn install(
                             status.code().unwrap_or_default()
                         );
                         return Err(EX_SOFTWARE);
-                    }
+                    },
                     Ok(_) => {
                         if flags.verbose > 0 {
                             cprintln!(
@@ -128,9 +128,9 @@ pub async fn install(
                                 module.r#type.origin(),
                             );
                         }
-                    }
+                    },
                 };
-            }
+            },
         }
     }
 

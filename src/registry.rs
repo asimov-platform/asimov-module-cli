@@ -7,7 +7,7 @@ pub mod pypi;
 pub mod rubygems;
 
 use crate::{
-    SysexitsError::{self, *},
+    SysexitsError::{self},
     registry,
 };
 use asimov_env::{
@@ -15,7 +15,6 @@ use asimov_env::{
     envs::{PythonEnv, RubyEnv},
 };
 use derive_more::Display;
-use tokio::task;
 
 #[derive(Clone, Debug)]
 pub struct ModuleMetadata {
@@ -31,7 +30,7 @@ impl ModuleMetadata {
             ModuleType::Rust => {
                 let command_name = format!("{}-module", self.name); // FIXME
                 Ok(clientele::SubcommandsProvider::find("asimov-", &command_name).is_some())
-            }
+            },
             ModuleType::Ruby => RubyEnv::default().is_module_installed(&self.name),
             ModuleType::Python => PythonEnv::default().is_module_installed(&self.name),
         }
@@ -70,65 +69,68 @@ pub async fn fetch_module(module_name: &str) -> Option<ModuleMetadata> {
 }
 
 pub async fn fetch_modules() -> Result<Vec<ModuleMetadata>, SysexitsError> {
-    // Spawn tasks to fetch module package metadata:
-    let rust_task = task::spawn(async {
-        let result = registry::crates::fetch_current_modules()
-            .await
-            .map_err(|e| {
-                tracing::error!("failed to fetch Rust module metadata: {e}");
-                EX_UNAVAILABLE
-            })?;
-        registry::crates::extract_module_names(result).map_err(|e| {
-            tracing::error!("failed to parse Rust module metadata: {e}");
-            EX_DATAERR
-        })
-    });
-    let ruby_task = task::spawn(async {
-        let result = registry::rubygems::fetch_current_modules()
-            .await
-            .map_err(|e| {
-                tracing::error!("failed to fetch Ruby module metadata: {e}");
-                EX_UNAVAILABLE
-            })?;
-        registry::rubygems::extract_module_names(result).map_err(|e| {
-            tracing::error!("failed to parse Ruby module metadata: {e}");
-            EX_DATAERR
-        })
-    });
-    let python_task = task::spawn(async {
-        let result = registry::pypi::fetch_current_modules().await.map_err(|e| {
-            tracing::error!("failed to fetch Python module metadata: {e}");
-            EX_UNAVAILABLE
-        })?;
-        registry::pypi::extract_module_names(result).map_err(|e| {
-            tracing::error!("failed to parse Python module metadata: {e}");
-            EX_DATAERR
-        })
-    });
+    // Disable registry modules temporarily.
+    return Ok(Vec::new());
 
-    // Await all tasks; note the double ?? to handle both `JoinError` and the
-    // `Result` from the task:
-    let rust_modules = rust_task.await.map_err(|e| {
-        tracing::error!("failed to join Rust module task: {e}");
-        EX_SOFTWARE
-    })??;
-    let ruby_modules = ruby_task.await.map_err(|e| {
-        tracing::error!("failed to join Ruby module task: {e}");
-        EX_SOFTWARE
-    })??;
-    let python_modules = python_task.await.map_err(|e| {
-        tracing::error!("failed to join Python module task: {e}");
-        EX_SOFTWARE
-    })??;
+    // // Spawn tasks to fetch module package metadata:
+    // let rust_task = task::spawn(async {
+    //     let result = registry::crates::fetch_current_modules()
+    //         .await
+    //         .map_err(|e| {
+    //             tracing::error!("failed to fetch Rust module metadata: {e}");
+    //             EX_UNAVAILABLE
+    //         })?;
+    //     registry::crates::extract_module_names(result).map_err(|e| {
+    //         tracing::error!("failed to parse Rust module metadata: {e}");
+    //         EX_DATAERR
+    //     })
+    // });
+    // let ruby_task = task::spawn(async {
+    //     let result = registry::rubygems::fetch_current_modules()
+    //         .await
+    //         .map_err(|e| {
+    //             tracing::error!("failed to fetch Ruby module metadata: {e}");
+    //             EX_UNAVAILABLE
+    //         })?;
+    //     registry::rubygems::extract_module_names(result).map_err(|e| {
+    //         tracing::error!("failed to parse Ruby module metadata: {e}");
+    //         EX_DATAERR
+    //     })
+    // });
+    // let python_task = task::spawn(async {
+    //     let result = registry::pypi::fetch_current_modules().await.map_err(|e| {
+    //         tracing::error!("failed to fetch Python module metadata: {e}");
+    //         EX_UNAVAILABLE
+    //     })?;
+    //     registry::pypi::extract_module_names(result).map_err(|e| {
+    //         tracing::error!("failed to parse Python module metadata: {e}");
+    //         EX_DATAERR
+    //     })
+    // });
 
-    let mut all_modules: Vec<ModuleMetadata> = rust_modules
-        .iter()
-        .chain(ruby_modules.iter())
-        .chain(python_modules.iter())
-        .cloned()
-        .collect();
+    // // Await all tasks; note the double ?? to handle both `JoinError` and the
+    // // `Result` from the task:
+    // let rust_modules = rust_task.await.map_err(|e| {
+    //     tracing::error!("failed to join Rust module task: {e}");
+    //     EX_SOFTWARE
+    // })??;
+    // let ruby_modules = ruby_task.await.map_err(|e| {
+    //     tracing::error!("failed to join Ruby module task: {e}");
+    //     EX_SOFTWARE
+    // })??;
+    // let python_modules = python_task.await.map_err(|e| {
+    //     tracing::error!("failed to join Python module task: {e}");
+    //     EX_SOFTWARE
+    // })??;
 
-    all_modules.sort_by_key(|m| m.name.clone());
+    // let mut all_modules: Vec<ModuleMetadata> = rust_modules
+    //     .iter()
+    //     .chain(ruby_modules.iter())
+    //     .chain(python_modules.iter())
+    //     .cloned()
+    //     .collect();
 
-    Ok(all_modules)
+    // all_modules.sort_by_key(|m| m.name.clone());
+
+    // Ok(all_modules)
 }

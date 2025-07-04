@@ -97,7 +97,7 @@ pub async fn install_from_github(
             if verbosity > 1 {
                 cprintln!("<s,y>warning:</> No checksum file found, skipping verification");
             }
-        }
+        },
         Ok(Some(checksum)) => {
             if verbosity > 1 {
                 cprintln!("<s,c>»</> Verifying checksum...");
@@ -108,11 +108,11 @@ pub async fn install_from_github(
             if verbosity > 0 {
                 cprintln!("<s,g>✓</> Verified checksum");
             }
-        }
+        },
         Err(err) => {
             tracing::error!("error while fetching checksum file: {err}");
             return Err(EX_UNAVAILABLE);
-        }
+        },
     }
 
     if verbosity > 1 {

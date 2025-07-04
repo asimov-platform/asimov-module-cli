@@ -30,7 +30,7 @@ pub async fn list(flags: &StandardOptions) -> Result<(), SysexitsError> {
                     } else {
                         cprintln!("<s,g>✓</> {}", name);
                     }
-                }
+                },
                 Err(e) => continue,
             }
         }
