@@ -24,7 +24,7 @@ pub async fn uninstall(
                 if flags.verbose > 1 {
                     cprintln!("<s,g>✓</> Removed manifest for module `{}`.", module_name);
                 }
-            }
+            },
             Err(err) if err.kind() == ErrorKind::NotFound => (),
             Err(err) => {
                 tracing::error!(
@@ -33,7 +33,7 @@ pub async fn uninstall(
                     err
                 );
                 return Err(SysexitsError::from(err));
-            }
+            },
         };
         Ok(())
     };
@@ -68,12 +68,12 @@ pub async fn uninstall(
                     if flags.verbose > 1 {
                         cprintln!("<s,g>✓</> Removed binary `{}`.", path.display());
                     }
-                }
+                },
                 Err(err) if err.kind() == ErrorKind::NotFound => (),
                 Err(err) => {
                     tracing::error!("failed to remove binary `{}`: {err}", path.display());
                     return Err(SysexitsError::from(err));
-                }
+                },
             }
         }
 
@@ -92,11 +92,11 @@ pub async fn uninstall(
                 if module.is_installed()? {
                     modules_to_uninstall.push(module.clone());
                 }
-            }
+            },
             None => {
                 tracing::debug!("skipping registry uninstall for unknown module: {module_name}");
                 continue;
-            }
+            },
         }
     }
 
@@ -123,11 +123,11 @@ pub async fn uninstall(
                     module.r#type.to_string()
                 );
                 return Err(SysexitsError::EX_UNAVAILABLE);
-            }
+            },
             Err(error) => {
                 tracing::error!("failed to uninstall module `{}`: {}", module.name, error);
                 return Err(SysexitsError::EX_OSERR);
-            }
+            },
             Ok(status) if !status.success() => {
                 tracing::error!(
                     "failed to uninstall module `{}`: exit code {}",
@@ -135,12 +135,12 @@ pub async fn uninstall(
                     status.code().unwrap_or_default()
                 );
                 return Err(SysexitsError::EX_SOFTWARE);
-            }
+            },
             Ok(_) => {
                 if flags.verbose > 0 {
                     cprintln!("<s><g>✓</></> Uninstalled the module `{}`.", module.name);
                 }
-            }
+            },
         }
     }
 
