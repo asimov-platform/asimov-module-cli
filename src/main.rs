@@ -32,6 +32,12 @@ enum Command {
     },
 
     /// TBD
+    Config {
+        /// The name of the module to configure
+        name: String,
+    },
+
+    /// TBD
     #[cfg(feature = "unstable")]
     Disable {
         /// The names of the modules to disable
@@ -128,6 +134,7 @@ pub fn main() -> SysexitsError {
     // Execute the given command:
     let result = match options.command.unwrap() {
         Command::Browse { name } => commands::browse(name, &options.flags),
+        Command::Config { name } => commands::config(name, &options.flags),
         #[cfg(feature = "unstable")]
         Command::Disable { names } => commands::disable(names, &options.flags),
         #[cfg(feature = "unstable")]
