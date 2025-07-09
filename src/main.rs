@@ -35,6 +35,9 @@ enum Command {
     Config {
         /// The name of the module to configure
         name: String,
+
+        #[clap(trailing_var_arg = true)]
+        args: Vec<String>,
     },
 
     /// TBD
@@ -134,7 +137,7 @@ pub fn main() -> SysexitsError {
     // Execute the given command:
     let result = match options.command.unwrap() {
         Command::Browse { name } => commands::browse(name, &options.flags),
-        Command::Config { name } => commands::config(name, &options.flags),
+        Command::Config { name, args } => commands::config(name, &args, &options.flags),
         #[cfg(feature = "unstable")]
         Command::Disable { names } => commands::disable(names, &options.flags),
         #[cfg(feature = "unstable")]
