@@ -37,7 +37,8 @@ pub async fn config(
         manifest
             .config
             .as_ref()
-            .is_some_and(|conf| conf.variables.iter().any(|var| var.name == args[0]))
+            .and_then(|conf| conf.variables.first())
+            .is_some_and(|var| var.name == args[0])
     };
 
     if !conf_vars.is_empty() && (args.is_empty() || first_arg_is_key) {
@@ -125,8 +126,13 @@ pub async fn config(
             {
                 let var_file = conf_dir.join(name);
                 if let Ok(current) = tokio::fs::read_to_string(&var_file).await {
-                    println!("{name}: {}", current.trim());
+                    println!("{}", current.trim());
                 }
+                // make args empty to not pass the same key to configurator
+                args = &[];
+            } else {
+                ceprintln!("<s,r>error:</> unrecognized configuration variable key: `{name}`");
+                return Err(EX_USAGE);
             }
         } else if args.len() % 2 == 0 {
             // pair(s) of (key,value), write into config file(s)
