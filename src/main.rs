@@ -31,7 +31,8 @@ enum Command {
         name: String,
     },
 
-    /// TBD
+    /// Configure an installed module
+    #[clap(override_usage = CONFIG_USAGE)]
     Config {
         /// The name of the module to configure
         name: String,
@@ -160,3 +161,9 @@ pub fn main() -> SysexitsError {
         Err(err) => err,
     }
 }
+
+const CONFIG_USAGE: &str = r#"
+    config <module>                     # Interactive configuration
+    config <module> <key>               # Show value for key
+    config <module> [<key> <value>]...  # Set key(s) to value(s)
+"#;
