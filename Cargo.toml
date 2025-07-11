@@ -71,3 +71,7 @@ lto = "thin"
 [[bin]]
 name = "asimov-module"
 path = "src/main.rs"
+
+[patch.crates-io]
+asimov-module = { git = "https://github.com/asimov-platform/asimov.rs", branch = "samuel/module-config" }
+asimov-env = { git = "https://github.com/asimov-platform/asimov.rs", branch = "samuel/module-config" }

@@ -31,6 +31,16 @@ enum Command {
         name: String,
     },
 
+    /// Configure an installed module
+    #[clap(override_usage = CONFIG_USAGE)]
+    Config {
+        /// The name of the module to configure
+        name: String,
+
+        #[clap(trailing_var_arg = true)]
+        args: Vec<String>,
+    },
+
     /// TBD
     #[cfg(feature = "unstable")]
     Disable {
@@ -128,6 +138,7 @@ pub fn main() -> SysexitsError {
     // Execute the given command:
     let result = match options.command.unwrap() {
         Command::Browse { name } => commands::browse(name, &options.flags),
+        Command::Config { name, args } => commands::config(name, &args, &options.flags),
         #[cfg(feature = "unstable")]
         Command::Disable { names } => commands::disable(names, &options.flags),
         #[cfg(feature = "unstable")]
@@ -150,3 +161,9 @@ pub fn main() -> SysexitsError {
         Err(err) => err,
     }
 }
+
+const CONFIG_USAGE: &str = r#"
+    config <module>                     # Interactive configuration
+    config <module> <key>               # Show value for key
+    config <module> [<key> <value>]...  # Set key(s) to value(s)
+"#;

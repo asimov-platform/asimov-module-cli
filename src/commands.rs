@@ -5,6 +5,9 @@
 mod browse;
 pub use browse::*;
 
+mod config;
+pub use config::*;
+
 mod disable;
 pub use disable::*;
 
