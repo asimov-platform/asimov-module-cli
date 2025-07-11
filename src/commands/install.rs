@@ -31,7 +31,7 @@ pub async fn install(
 
         if flags.verbose > 0 {
             cprintln!(
-                "<s,c>✓</> Found latest version `{}` for module `{}`.",
+                "<s,g>✓</> Found latest version `{}` for module `{}`.",
                 release,
                 module_name,
             );
@@ -46,7 +46,7 @@ pub async fn install(
             })?;
         if flags.verbose > 1 {
             cprintln!(
-                "<s,c>✓</> Fetched module manifest for module `{}`",
+                "<s,g>✓</> Fetched module manifest for module `{}`",
                 module_name,
             );
         }
