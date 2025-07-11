@@ -128,7 +128,7 @@ pub async fn config(
                     println!("{name}: {}", current.trim());
                 }
             }
-        } else if args.len().is_multiple_of(2) {
+        } else if args.len() % 2 == 0 {
             // pair(s) of (key,value), write into config file(s)
 
             let mut stdin = std::io::stdin().lock().lines();
