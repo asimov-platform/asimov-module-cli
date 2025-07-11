@@ -62,43 +62,58 @@ pub async fn config(
                 let var_file = conf_dir.join(&var.name);
 
                 let md = tokio::fs::metadata(&var_file).await;
-                if md.is_err_and(|err| err.kind() == std::io::ErrorKind::NotFound) {
-                    let is_required = var.default_value.is_none();
-                    let required_text = if is_required {
-                        " (required)"
-                    } else {
-                        " (optional, press Enter to skip)"
-                    };
-                    writeln!(&mut stdout, "Enter value for `{}`{required_text}", var.name)?;
-                    if let Some(desc) = &var.description {
-                        writeln!(&mut stdout, "Description: {desc}");
-                    }
-                    let value = loop {
-                        write!(&mut stdout, "> ")?;
-                        stdout.flush()?;
 
-                        match stdin.next() {
-                            Some(Ok(line)) if is_required && line.is_empty() => continue,
-                            Some(Ok(line)) => break line,
-                            Some(Err(e)) => return Err(e.into()),
-                            None => return Err(EX_NOINPUT),
-                        }
-                    };
-                    let value = value.trim();
-                    if value.is_empty() {
-                        continue;
-                    }
-                    tokio::fs::write(&var_file, &value).await?;
+                let current_value = tokio::fs::read_to_string(&var_file).await.ok();
+
+                let is_required = var.default_value.is_none();
+
+                let info_text = if current_value.is_some() {
+                    "(press Enter to keep current)"
+                } else if let Some(default_value) = &var.default_value {
+                    &format!("(optional, default: `{default_value}`)")
+                } else {
+                    "(required)"
+                };
+
+                writeln!(&mut stdout, "Enter value for `{}` {info_text}", var.name)?;
+
+                if let Some(current) = &current_value {
+                    writeln!(&mut stdout, "Current value: `{}`", current.trim())?;
                 }
+
+                if let Some(desc) = &var.description {
+                    writeln!(&mut stdout, "Description: {desc}");
+                }
+
+                let value = loop {
+                    write!(&mut stdout, "> ")?;
+                    stdout.flush()?;
+
+                    match stdin.next() {
+                        Some(Ok(line))
+                            if current_value.is_none() && is_required && line.is_empty() =>
+                        {
+                            continue;
+                        },
+                        Some(Ok(line)) => break line,
+                        Some(Err(e)) => return Err(e.into()),
+                        None => return Err(EX_NOINPUT),
+                    }
+                };
+                let value = value.trim();
+                if value.is_empty() {
+                    continue;
+                }
+                tokio::fs::write(&var_file, &value).await?;
             }
 
             let vars = manifest.read_variables(None).map_err(|e| {
                 ceprintln!("<s,r>error:</> {e}");
                 EX_UNAVAILABLE
             })?;
-            println!("Configuration: ");
+            writeln!(&mut stdout, "Configuration: ")?;
             for (name, value) in vars {
-                println!("\t{name}: {value}");
+                writeln!(&mut stdout, "\t{name}: {value}")?;
             }
         } else if args.len() == 1 {
             // one arg, fetch the value
@@ -116,6 +131,8 @@ pub async fn config(
         } else if args.len().is_multiple_of(2) {
             // pair(s) of (key,value), write into config file(s)
 
+            let mut stdin = std::io::stdin().lock().lines();
+
             loop {
                 // split a 2-tuple from args
                 let Some(([name, value], rest)) = args.split_first_chunk() else {
@@ -132,10 +149,10 @@ pub async fn config(
                 // confirm that user wants to overwrite
                 if var_file.exists() {
                     let current = tokio::fs::read_to_string(&var_file).await?;
-                    println!("Current value: {}", current.trim());
+                    println!("Current value for `{name}`: {}", current.trim());
                     print!("Overwrite? [y/N]: ");
 
-                    let input = std::io::stdin().lines().next().ok_or(EX_NOINPUT)??;
+                    let input = stdin.next().ok_or(EX_NOINPUT)??;
                     if !input.trim().eq_ignore_ascii_case("y") {
                         continue;
                     }
@@ -148,11 +165,7 @@ pub async fn config(
 
     let configurator_name = format!("asimov-{module_name}-configurator");
 
-    let provides_configurator = manifest
-        .provides
-        .programs
-        .iter()
-        .any(|program| *program == configurator_name);
+    let provides_configurator = manifest.provides.programs.contains(&configurator_name);
 
     let conf_bin = asimov_root().join("libexec").join(configurator_name);
 
@@ -164,7 +177,8 @@ pub async fn config(
             .stdin(std::process::Stdio::inherit())
             .stdout(std::process::Stdio::inherit())
             .stderr(std::process::Stdio::inherit())
-            .status();
+            .status()
+            .inspect_err(|e| ceprintln!("<s,r>error:</> failed to execute configurator: {e}"))?;
     }
 
     Ok(())
