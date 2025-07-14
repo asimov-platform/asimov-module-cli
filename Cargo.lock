@@ -126,8 +126,9 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
 name = "asimov-env"
-version = "25.0.0-dev.13"
-source = "git+https://github.com/asimov-platform/asimov.rs?branch=samuel%2Fmodule-config#1e7105be769a6587751c182b6003357b81127ae7"
+version = "25.0.0-dev.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f65778ee204913244ae3bc3e954e28c546a6fd73a68ebe541adbc6246ce7c9b"
 dependencies = [
  "cap-directories",
  "cap-std",
@@ -137,8 +138,9 @@ dependencies = [
 
 [[package]]
 name = "asimov-module"
-version = "25.0.0-dev.13"
-source = "git+https://github.com/asimov-platform/asimov.rs?branch=samuel%2Fmodule-config#1e7105be769a6587751c182b6003357b81127ae7"
+version = "25.0.0-dev.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "790f0315926906a7b2f30443fdea20d55e80209f8a1ad17f754d965ef657cc84"
 dependencies = [
  "asimov-env",
  "clientele",
