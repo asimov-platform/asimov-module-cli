@@ -5,7 +5,8 @@ use color_print::{ceprintln, cprintln};
 use crate::{
     StandardOptions, SysexitsError,
     registry::github::{
-        fetch_latest_release, install_from_github, installed_modules, installed_version,
+        fetch_latest_release, install_from_github, install_module_manifest, installed_modules,
+        installed_version,
     },
 };
 
@@ -22,18 +23,17 @@ pub async fn upgrade(
             .inspect_err(|e| ceprintln!("<s,r>error:</> failed to read installed modules: {e}"))?
     };
     for module_name in module_names {
-        let Some(installed) = installed_version(&module_name).await? else {
-            ceprintln!("<s,y>warn:</> Module '{module_name}' is not installed, skipping...");
-            continue;
-        };
+        let installed = installed_version(&module_name).await?;
 
         let latest = fetch_latest_release(&module_name).await.inspect_err(|_| {
             ceprintln!("<s,r>error:</> failed to check latest release version of '{module_name}'")
         })?;
 
-        if installed == latest {
+        if installed.is_some_and(|installed| installed == latest) {
             if flags.verbose > 0 {
-                cprintln!("<s,g>✓</> Module '{module_name}' already has latest version installed");
+                cprintln!(
+                    "<s,g>✓</> Module '{module_name}' already has latest version <s>{latest}</> installed"
+                );
             }
             continue;
         }

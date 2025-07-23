@@ -30,7 +30,7 @@ struct GitHubAsset {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InstalledModuleManifest {
-    pub version: String,
+    pub version: Option<String>,
 
     #[serde(flatten)]
     pub manifest: ModuleManifest,
@@ -93,7 +93,7 @@ pub async fn installed_version(module_name: &str) -> Result<Option<String>, Syse
         EX_UNAVAILABLE
     })?;
 
-    Ok(Some(manifest.version))
+    Ok(manifest.version)
 }
 
 pub async fn fetch_latest_release(module_name: &str) -> Result<String, SysexitsError> {
@@ -242,7 +242,7 @@ pub async fn install_module_manifest(
     })?;
 
     let manifest = InstalledModuleManifest {
-        version: version.to_string(),
+        version: Some(version.to_string()),
         manifest,
     };
 
