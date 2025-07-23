@@ -27,6 +27,50 @@ struct GitHubAsset {
     browser_download_url: String,
 }
 
+pub async fn installed_modules() -> Result<Vec<String>, SysexitsError> {
+    let module_dir = asimov_root().join("modules");
+
+    if !tokio::fs::try_exists(&module_dir).await.unwrap_or(false) {
+        return Ok(Vec::new());
+    }
+
+    let mut modules = Vec::new();
+    let mut read_dir = tokio::fs::read_dir(&module_dir).await.map_err(|e| {
+        tracing::error!(
+            "failed to read modules directory '{}': {e}",
+            module_dir.display()
+        );
+        EX_OSFILE
+    })?;
+
+    while let Some(entry) = read_dir.next_entry().await.map_err(|e| {
+        tracing::error!("failed to read directory entry: {e}");
+        EX_OSFILE
+    })? {
+        let path = entry.path();
+
+        if !path.is_file()
+            || path
+                .extension()
+                .is_none_or(|ext| ext != "yaml" && ext != "yml")
+        {
+            continue;
+        }
+
+        let Some(name) = path.file_stem().and_then(std::ffi::OsStr::to_str) else {
+            continue;
+        };
+        modules.push(name.to_string());
+    }
+
+    modules.sort();
+    Ok(modules)
+}
+
+pub async fn installed_version(_module_name: &str) -> Result<Option<String>, SysexitsError> {
+    Ok(None) // TODO
+}
+
 pub async fn fetch_latest_release(module_name: &str) -> Result<String, SysexitsError> {
     let url = format!(
         "https://api.github.com/repos/asimov-modules/asimov-{}-module/releases/latest",
