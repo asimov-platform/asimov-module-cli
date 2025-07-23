@@ -42,6 +42,16 @@ pub async fn upgrade(
             cprintln!("<s,c>»</> Upgrading module '{module_name}'...");
         }
 
+        install_module_manifest(&module_name, &latest)
+            .await
+            .inspect_err(|e| {
+                tracing::error!("failed to install module manifest for `{module_name}`")
+            })?;
+
+        if flags.verbose > 1 {
+            cprintln!("<s,g>✓</> Installed new module manifest for module `{module_name}`")
+        }
+
         install_from_github(&module_name, &latest, flags.verbose)
             .await
             .inspect_err(|_| {
