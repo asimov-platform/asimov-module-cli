@@ -69,6 +69,7 @@ pub async fn installed_modules() -> Result<Vec<String>, SysexitsError> {
         let Some(name) = path.file_stem().and_then(std::ffi::OsStr::to_str) else {
             continue;
         };
+
         modules.push(name.to_string());
     }
 
@@ -87,8 +88,10 @@ pub async fn installed_version(module_name: &str) -> Result<Option<String>, Syse
         Err(err) => Err(err),
     }?;
 
-    let manifest: InstalledModuleManifest =
-        serde_yml::from_str(&content).map_err(|_| EX_UNAVAILABLE)?;
+    let manifest: InstalledModuleManifest = serde_yml::from_str(&content).map_err(|e| {
+        tracing::error!("failed to deserialize module manifest: {e}");
+        EX_UNAVAILABLE
+    })?;
 
     Ok(Some(manifest.version))
 }
@@ -233,15 +236,20 @@ pub async fn install_module_manifest(
         EX_UNAVAILABLE
     })?;
 
-    let manifest =
-        serde_yml::from_slice::<'_, ModuleManifest>(&manifest).map_err(|_| EX_UNAVAILABLE)?;
+    let manifest = serde_yml::from_slice::<'_, ModuleManifest>(&manifest).map_err(|e| {
+        tracing::error!("failed to deserialize module manifest: {e}");
+        EX_UNAVAILABLE
+    })?;
 
     let manifest = InstalledModuleManifest {
         version: version.to_string(),
         manifest,
     };
 
-    let manifest = serde_yml::to_string(&manifest).map_err(|_| EX_UNAVAILABLE)?;
+    let manifest = serde_yml::to_string(&manifest).map_err(|e| {
+        tracing::error!("failed to re-serialize module manifest: {e}");
+        EX_UNAVAILABLE
+    })?;
 
     let manifest_filename = module_dir.join(format!("{}.yaml", module_name));
     let mut manifest_file = tokio::fs::File::create(&manifest_filename)

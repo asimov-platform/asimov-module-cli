@@ -39,7 +39,7 @@ pub async fn upgrade(
         }
 
         if flags.verbose > 1 {
-            cprintln!("<s,c>»</>Upgrading module '{module_name}'...");
+            cprintln!("<s,c>»</> Upgrading module '{module_name}'...");
         }
 
         install_from_github(&module_name, &latest, flags.verbose)
