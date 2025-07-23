@@ -1,9 +1,10 @@
 // This is free and unencumbered software released into the public domain.
 
 use asimov_env::paths::asimov_root;
+use asimov_module::models::ModuleManifest;
 use clientele::SysexitsError::{self, *};
 use color_print::cprintln;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{error::Error, path::Path};
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
@@ -25,6 +26,14 @@ struct GitHubRelease {
 struct GitHubAsset {
     name: String,
     browser_download_url: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InstalledModuleManifest {
+    pub version: String,
+
+    #[serde(flatten)]
+    pub manifest: ModuleManifest,
 }
 
 pub async fn installed_modules() -> Result<Vec<String>, SysexitsError> {
@@ -211,6 +220,16 @@ pub async fn install_module_manifest(
         EX_UNAVAILABLE
     })?;
 
+    let manifest =
+        serde_yml::from_slice::<'_, ModuleManifest>(&manifest).map_err(|_| EX_UNAVAILABLE)?;
+
+    let manifest = InstalledModuleManifest {
+        version: version.to_string(),
+        manifest,
+    };
+
+    let manifest = serde_yml::to_string(&manifest).map_err(|_| EX_UNAVAILABLE)?;
+
     let manifest_filename = module_dir.join(format!("{}.yaml", module_name));
     let mut manifest_file = tokio::fs::File::create(&manifest_filename)
         .await
@@ -222,12 +241,15 @@ pub async fn install_module_manifest(
         })?;
 
     use tokio::io::AsyncWriteExt as _;
-    manifest_file.write_all(&manifest).await.inspect_err(|e| {
-        tracing::error!(
-            "failed to write manifest file '{}': {e}",
-            manifest_filename.display()
-        )
-    })?;
+    manifest_file
+        .write_all(manifest.as_bytes())
+        .await
+        .inspect_err(|e| {
+            tracing::error!(
+                "failed to write manifest file '{}': {e}",
+                manifest_filename.display()
+            )
+        })?;
 
     Ok(())
 }
