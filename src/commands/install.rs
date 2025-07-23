@@ -46,7 +46,7 @@ pub async fn install(
             })?;
         if flags.verbose > 1 {
             cprintln!(
-                "<s,g>✓</> Fetched module manifest for module `{}`",
+                "<s,g>✓</> Installed module manifest for module `{}`",
                 module_name,
             );
         }

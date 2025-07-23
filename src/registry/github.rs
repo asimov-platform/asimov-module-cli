@@ -1,9 +1,10 @@
 // This is free and unencumbered software released into the public domain.
 
 use asimov_env::paths::asimov_root;
+use asimov_module::models::ModuleManifest;
 use clientele::SysexitsError::{self, *};
 use color_print::cprintln;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{error::Error, path::Path};
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
@@ -25,6 +26,74 @@ struct GitHubRelease {
 struct GitHubAsset {
     name: String,
     browser_download_url: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InstalledModuleManifest {
+    pub version: Option<String>,
+
+    #[serde(flatten)]
+    pub manifest: ModuleManifest,
+}
+
+pub async fn installed_modules() -> Result<Vec<String>, SysexitsError> {
+    let module_dir = asimov_root().join("modules");
+
+    if !tokio::fs::try_exists(&module_dir).await.unwrap_or(false) {
+        return Ok(Vec::new());
+    }
+
+    let mut modules = Vec::new();
+    let mut read_dir = tokio::fs::read_dir(&module_dir).await.map_err(|e| {
+        tracing::error!(
+            "failed to read modules directory '{}': {e}",
+            module_dir.display()
+        );
+        EX_OSFILE
+    })?;
+
+    while let Some(entry) = read_dir.next_entry().await.map_err(|e| {
+        tracing::error!("failed to read directory entry: {e}");
+        EX_OSFILE
+    })? {
+        let path = entry.path();
+
+        if !path.is_file()
+            || path
+                .extension()
+                .is_none_or(|ext| ext != "yaml" && ext != "yml")
+        {
+            continue;
+        }
+
+        let Some(name) = path.file_stem().and_then(std::ffi::OsStr::to_str) else {
+            continue;
+        };
+
+        modules.push(name.to_string());
+    }
+
+    modules.sort();
+    Ok(modules)
+}
+
+pub async fn installed_version(module_name: &str) -> Result<Option<String>, SysexitsError> {
+    let manifest_file = asimov_root()
+        .join("modules")
+        .join(std::format!("{}.yaml", module_name));
+
+    let content = match tokio::fs::read_to_string(&manifest_file).await {
+        Ok(content) => Ok(content),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(err) => Err(err),
+    }?;
+
+    let manifest: InstalledModuleManifest = serde_yml::from_str(&content).map_err(|e| {
+        tracing::error!("failed to deserialize module manifest: {e}");
+        EX_UNAVAILABLE
+    })?;
+
+    Ok(manifest.version)
 }
 
 pub async fn fetch_latest_release(module_name: &str) -> Result<String, SysexitsError> {
@@ -167,6 +236,21 @@ pub async fn install_module_manifest(
         EX_UNAVAILABLE
     })?;
 
+    let manifest = serde_yml::from_slice::<'_, ModuleManifest>(&manifest).map_err(|e| {
+        tracing::error!("failed to deserialize module manifest: {e}");
+        EX_UNAVAILABLE
+    })?;
+
+    let manifest = InstalledModuleManifest {
+        version: Some(version.to_string()),
+        manifest,
+    };
+
+    let manifest = serde_yml::to_string(&manifest).map_err(|e| {
+        tracing::error!("failed to re-serialize module manifest: {e}");
+        EX_UNAVAILABLE
+    })?;
+
     let manifest_filename = module_dir.join(format!("{}.yaml", module_name));
     let mut manifest_file = tokio::fs::File::create(&manifest_filename)
         .await
@@ -178,12 +262,15 @@ pub async fn install_module_manifest(
         })?;
 
     use tokio::io::AsyncWriteExt as _;
-    manifest_file.write_all(&manifest).await.inspect_err(|e| {
-        tracing::error!(
-            "failed to write manifest file '{}': {e}",
-            manifest_filename.display()
-        )
-    })?;
+    manifest_file
+        .write_all(manifest.as_bytes())
+        .await
+        .inspect_err(|e| {
+            tracing::error!(
+                "failed to write manifest file '{}': {e}",
+                manifest_filename.display()
+            )
+        })?;
 
     Ok(())
 }

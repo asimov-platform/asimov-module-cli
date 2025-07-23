@@ -100,8 +100,9 @@ enum Command {
         names: Vec<String>,
     },
 
-    /// TBD
-    #[cfg(feature = "unstable")]
+    /// Upgrades currently installed modules.
+    ///
+    /// By default upgrades all installed modules.
     #[clap(alias = "update")]
     Upgrade {
         /// The names of the modules to upgrade
@@ -152,7 +153,6 @@ pub fn main() -> SysexitsError {
         Command::List {} => commands::list(&options.flags),
         Command::Resolve { url } => commands::resolve(url, &options.flags),
         Command::Uninstall { names } => commands::uninstall(names, &options.flags),
-        #[cfg(feature = "unstable")]
         Command::Upgrade { names } => commands::upgrade(names, &options.flags),
     };
 
