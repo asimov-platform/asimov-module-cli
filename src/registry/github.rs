@@ -76,8 +76,21 @@ pub async fn installed_modules() -> Result<Vec<String>, SysexitsError> {
     Ok(modules)
 }
 
-pub async fn installed_version(_module_name: &str) -> Result<Option<String>, SysexitsError> {
-    Ok(None) // TODO
+pub async fn installed_version(module_name: &str) -> Result<Option<String>, SysexitsError> {
+    let manifest_file = asimov_root()
+        .join("modules")
+        .join(std::format!("{}.yaml", module_name));
+
+    let content = match tokio::fs::read_to_string(&manifest_file).await {
+        Ok(content) => Ok(content),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(err) => Err(err),
+    }?;
+
+    let manifest: InstalledModuleManifest =
+        serde_yml::from_str(&content).map_err(|_| EX_UNAVAILABLE)?;
+
+    Ok(Some(manifest.version))
 }
 
 pub async fn fetch_latest_release(module_name: &str) -> Result<String, SysexitsError> {
