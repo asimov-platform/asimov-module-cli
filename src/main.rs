@@ -100,7 +100,9 @@ enum Command {
         names: Vec<String>,
     },
 
-    /// Upgrades currently installed modules. By default all.
+    /// Upgrades currently installed modules.
+    ///
+    /// By default upgrades all installed modules.
     #[clap(alias = "update")]
     Upgrade {
         /// The names of the modules to upgrade
