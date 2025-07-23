@@ -86,7 +86,8 @@ pub async fn installed_version(module_name: &str) -> Result<Option<String>, Syse
         Ok(content) => Ok(content),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(err) => Err(err),
-    }?;
+    }
+    .inspect_err(|e| tracing::error!("failed to read module manifest: {e}"))?;
 
     let manifest: InstalledModuleManifest = serde_yml::from_str(&content).map_err(|e| {
         tracing::error!("failed to deserialize module manifest: {e}");

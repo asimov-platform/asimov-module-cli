@@ -29,7 +29,7 @@ pub async fn list(flags: &StandardOptions) -> Result<(), SysexitsError> {
     {
         let is_installed = module.is_installed().inspect_err(|e| {
             tracing::error!(
-                "failed to check if module '{}' is installed: {e}",
+                "failed to check if module `{}` is installed: {e}",
                 module.name,
             )
         })?;

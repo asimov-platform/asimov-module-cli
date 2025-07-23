@@ -25,7 +25,7 @@ pub async fn resolve(url: impl AsRef<str>, _flags: &StandardOptions) -> Result<(
             .file_type()
             .inspect_err(|e| {
                 tracing::error!(
-                    "failed to get file type for '{}': {e}",
+                    "failed to get file type for `{}`: {e}",
                     entry.path().display()
                 )
             })?
@@ -40,7 +40,7 @@ pub async fn resolve(url: impl AsRef<str>, _flags: &StandardOptions) -> Result<(
             continue;
         }
         let file = std::fs::File::open(&path).inspect_err(|e| {
-            tracing::error!("failed to open manifest file '{}': {e}", path.display())
+            tracing::error!("failed to open manifest file `{}`: {e}", path.display())
         })?;
         let manifest: ModuleManifest = serde_yml::from_reader(file).map_err(|e| {
             tracing::warn!(
@@ -50,12 +50,12 @@ pub async fn resolve(url: impl AsRef<str>, _flags: &StandardOptions) -> Result<(
             EX_UNAVAILABLE
         })?;
         resolver.insert_manifest(&manifest).inspect_err(|e| {
-            tracing::error!("failed to insert manifest from '{}': {e}", path.display())
+            tracing::error!("failed to insert manifest from `{}`: {e}", path.display())
         })?;
     }
 
     let modules = resolver.resolve(url.as_ref()).inspect_err(|e| {
-        tracing::error!("failed to resolve modules for URL '{}': {e}", url.as_ref())
+        tracing::error!("failed to resolve modules for URL `{}`: {e}", url.as_ref())
     })?;
 
     for module in modules {

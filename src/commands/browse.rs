@@ -35,7 +35,7 @@ pub async fn browse(
 
         if let Some(link) = links.first() {
             open::that(link)
-                .inspect_err(|e| tracing::error!("failed to open URL '{link}': {e}"))?;
+                .inspect_err(|e| tracing::error!("failed to open URL `{link}`: {e}"))?;
             return Ok(());
         }
     }
@@ -43,7 +43,7 @@ pub async fn browse(
     // try modules in registries
     if let Some(module) = registry::fetch_module(module_name).await {
         open::that(&module.url)
-            .inspect_err(|e| tracing::error!("failed to open URL '{}': {e}", module.url))?;
+            .inspect_err(|e| tracing::error!("failed to open URL `{}`: {e}", module.url))?;
         return Ok(());
     };
 
