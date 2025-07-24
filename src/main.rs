@@ -41,15 +41,13 @@ enum Command {
         args: Vec<String>,
     },
 
-    /// TBD
-    #[cfg(feature = "unstable")]
+    /// Disable modules
     Disable {
         /// The names of the modules to disable
         names: Vec<String>,
     },
 
-    /// TBD
-    #[cfg(feature = "unstable")]
+    /// Enable modules
     Enable {
         /// The names of the modules to enable
         names: Vec<String>,
@@ -100,7 +98,7 @@ enum Command {
         names: Vec<String>,
     },
 
-    /// Upgrades currently installed modules.
+    /// Upgrade currently installed modules
     ///
     /// By default upgrades all installed modules.
     #[clap(alias = "update")]
@@ -136,13 +134,24 @@ pub fn main() -> SysexitsError {
         return EX_OK;
     }
 
+    tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap()
+        .block_on(async {
+            asimov_module::installer::Installer::default()
+                .create_file_tree()
+                .await
+                .inspect_err(|e| {
+                    tracing::debug!("failed to create module file tree: {e}");
+                })
+                .ok();
+        });
+
     // Execute the given command:
     let result = match options.command.unwrap() {
         Command::Browse { name } => commands::browse(name, &options.flags),
         Command::Config { name, args } => commands::config(name, &args, &options.flags),
-        #[cfg(feature = "unstable")]
         Command::Disable { names } => commands::disable(names, &options.flags),
-        #[cfg(feature = "unstable")]
         Command::Enable { names } => commands::enable(names, &options.flags),
         #[cfg(feature = "unstable")]
         Command::Find { name } => commands::find(name, &options.flags),

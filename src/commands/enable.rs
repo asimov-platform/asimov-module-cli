@@ -1,13 +1,30 @@
 // This is free and unencumbered software released into the public domain.
 
-use crate::{StandardOptions, SysexitsError, registry};
+use crate::{
+    StandardOptions,
+    SysexitsError::{self, *},
+};
+use color_print::cprintln;
 
-pub fn enable(module_names: Vec<String>, _flags: &StandardOptions) -> Result<(), SysexitsError> {
+#[tokio::main]
+pub async fn enable(
+    module_names: Vec<String>,
+    flags: &StandardOptions,
+) -> Result<(), SysexitsError> {
+    let installer = asimov_module::installer::Installer::default();
     for module_name in module_names {
-        if registry::is_enabled(&module_name) {
-            continue; // skip already enabled modules
+        if flags.verbose > 1 {
+            cprintln!("<s,c>»</> Enabling module `{module_name}`...");
         }
-        // TODO
+
+        installer.enable_module(&module_name).await.map_err(|e| {
+            tracing::error!("failed to enable module `{module_name}`: {e}");
+            EX_UNAVAILABLE
+        })?;
+
+        if flags.verbose > 0 {
+            cprintln!("<s,g>✓</> Enabled module `{module_name}`.");
+        }
     }
     Ok(())
 }
