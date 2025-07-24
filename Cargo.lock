@@ -139,7 +139,7 @@ dependencies = [
 [[package]]
 name = "asimov-module"
 version = "25.0.0-dev.17"
-source = "git+https://github.com/asimov-platform/asimov.rs?branch=samuel%2Fmodule-installer#564ec1f886b615c70de8903974b3225d8e177610"
+source = "git+https://github.com/asimov-platform/asimov.rs?branch=samuel%2Fmodule-installer#eb3cfbfb542df2c63ab6d3e70120d7a132a731de"
 dependencies = [
  "asimov-env",
  "clientele",
