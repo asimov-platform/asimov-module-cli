@@ -1,14 +1,12 @@
 // This is free and unencumbered software released into the public domain.
 
-use std::io::{BufRead, Write};
-
 use asimov_env::paths::asimov_root;
-use asimov_module::models::ModuleManifest;
 use clientele::{
     StandardOptions,
     SysexitsError::{self, *},
 };
 use color_print::ceprintln;
+use std::io::{BufRead, Write};
 
 #[tokio::main]
 pub async fn config(
@@ -16,14 +14,20 @@ pub async fn config(
     mut args: &[String],
     _flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
-    let manifest = ModuleManifest::read_manifest(&module_name).inspect_err(|e| {
-        ceprintln!("<s,r>error:</> failed to read manifest for module `{module_name}`: {e}");
-        if e.kind() == std::io::ErrorKind::NotFound {
-            ceprintln!(
-                "<s,dim>hint:</> Check if the module is installed with: `asimov module list`"
-            );
-        }
-    })?;
+    let installer = asimov_module::installer::Installer::default();
+    let manifest = installer
+        .manifest(&module_name)
+        .await
+        .map_err(|e| {
+            tracing::error!("failed to read manifest for module `{module_name}`: {e}");
+            if let asimov_module::installer::error::ManifestError::NotInstalled = e {
+                ceprintln!(
+                    "<s,dim>hint:</> Check if the module is installed with: `asimov module list`"
+                );
+            }
+            EX_UNAVAILABLE
+        })?
+        .manifest;
 
     let conf_vars = manifest
         .config

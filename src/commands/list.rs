@@ -1,47 +1,35 @@
 // This is free and unencumbered software released into the public domain.
 
 use crate::{
-    StandardOptions, SysexitsError,
-    registry::{self, github::installed_modules},
+    StandardOptions,
+    SysexitsError::{self, *},
 };
-use asimov_env::paths::asimov_root;
-use color_print::{ceprintln, cprint, cprintln};
+use color_print::cprintln;
 
 #[tokio::main]
 pub async fn list(flags: &StandardOptions) -> Result<(), SysexitsError> {
-    let module_dir_path = asimov_root().join("modules");
+    let installer = asimov_module::installer::Installer::default();
+    let modules = installer.installed_modules().await.map_err(|e| {
+        tracing::error!("failed to read installed modules: {e}");
+        EX_UNAVAILABLE
+    })?;
 
-    let md = tokio::fs::metadata(&module_dir_path).await;
-    if md.is_ok_and(|md| md.is_dir()) {
-        let modules = installed_modules().await?;
-        for name in modules {
-            if flags.verbose > 0 {
-                cprintln!("<s,g>✓</> {}\t\t", name);
-            } else {
-                cprintln!("<s,g>✓</> {}", name);
-            }
-        }
-    }
+    for module in modules {
+        let name = module.manifest.name;
 
-    for module in registry::fetch_modules()
-        .await
-        .inspect_err(|e| tracing::error!("failed to fetch module registry: {e}"))?
-    {
-        let is_installed = module.is_installed().inspect_err(|e| {
-            tracing::error!(
-                "failed to check if module `{}` is installed: {e}",
-                module.name,
-            )
-        })?;
-        if is_installed {
-            cprint!("<s><g>✓</></> ");
+        let is_enabled = if installer.is_module_enabled(&name).await.map_err(|e| {
+            tracing::error!("failed to check if module is enabled: {e}");
+            EX_UNAVAILABLE
+        })? {
+            color_print::cstr!("<s,g>enabled</>")
         } else {
-            cprint!("<s><r>✗</></> ");
-        }
+            color_print::cstr!("<s,r>disabled</>")
+        };
+
         if flags.verbose > 0 {
-            cprintln!("{}\t{}\t{}", module.name, module.version, module.r#type);
+            cprintln!("<s,g>✓</> {}\t{}", name, is_enabled);
         } else {
-            cprintln!("{}", module.name);
+            cprintln!("<s,g>✓</> {}", name);
         }
     }
     Ok(())
