@@ -8,7 +8,7 @@ use color_print::cprintln;
 
 #[tokio::main]
 pub async fn list(flags: &StandardOptions) -> Result<(), SysexitsError> {
-    let installer = asimov_module::installer::Installer::default();
+    let installer = asimov_installer::Installer::default();
     let modules = installer.installed_modules().await.map_err(|e| {
         tracing::error!("failed to read installed modules: {e}");
         EX_UNAVAILABLE

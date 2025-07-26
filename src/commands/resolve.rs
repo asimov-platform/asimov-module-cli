@@ -9,7 +9,7 @@ use color_print::cprintln;
 
 #[tokio::main]
 pub async fn resolve(url: impl AsRef<str>, _flags: &StandardOptions) -> Result<(), SysexitsError> {
-    let installer = asimov_module::installer::Installer::default();
+    let installer = asimov_installer::Installer::default();
 
     let manifests = installer
         .enabled_modules()

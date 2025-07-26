@@ -11,7 +11,7 @@ pub async fn link(
     module_name: impl AsRef<str>,
     _flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
-    let installer = asimov_module::installer::Installer::default();
+    let installer = asimov_installer::Installer::default();
 
     let manifest = installer
         .manifest(module_name)

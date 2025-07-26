@@ -11,7 +11,7 @@ pub async fn browse(
     _flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
     let module_name = module_name.as_ref();
-    let installer = asimov_module::installer::Installer::default();
+    let installer = asimov_installer::Installer::default();
 
     let manifest = installer
         .manifest(&module_name)

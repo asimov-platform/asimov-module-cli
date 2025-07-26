@@ -11,7 +11,7 @@ pub async fn install(
     module_names: Vec<String>,
     flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
-    let installer = asimov_module::installer::Installer::default();
+    let installer = asimov_installer::Installer::default();
     for module_name in module_names {
         let latest = installer
             .fetch_latest_release(&module_name)

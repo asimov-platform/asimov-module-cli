@@ -11,7 +11,7 @@ pub async fn upgrade(
     module_names: Vec<String>,
     flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
-    let installer = asimov_module::installer::Installer::default();
+    let installer = asimov_installer::Installer::default();
 
     let module_names = if !module_names.is_empty() {
         module_names
