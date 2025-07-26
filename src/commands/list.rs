@@ -4,15 +4,17 @@ use crate::{
     StandardOptions,
     SysexitsError::{self, *},
 };
+use asimov_module::InstalledModuleManifest;
 use color_print::cprintln;
 
 #[tokio::main]
 pub async fn list(output: &str, flags: &StandardOptions) -> Result<(), SysexitsError> {
     let installer = asimov_installer::Installer::default();
-    let modules = installer.installed_modules().await.map_err(|e| {
-        tracing::error!("failed to read installed modules: {e}");
-        EX_UNAVAILABLE
-    })?;
+    let modules: Vec<InstalledModuleManifest> =
+        installer.installed_modules().await.map_err(|e| {
+            tracing::error!("failed to read installed modules: {e}");
+            EX_UNAVAILABLE
+        })?;
 
     for module in modules {
         let name = module.manifest.name;
@@ -23,10 +25,12 @@ pub async fn list(output: &str, flags: &StandardOptions) -> Result<(), SysexitsE
 
         match output {
             "jsonl" => {
+                let version = module.version.unwrap_or_default();
+                let label = module.manifest.label;
                 let uri = format!("https://asimov.directory/modules/{}", name);
                 println!(
-                    r#"{{"@type": "{}", "@id": "{}", "name": "{}", "enabled": {}}}"#,
-                    "AsimovModule", uri, name, is_enabled
+                    r#"{{"@type": "{}", "@id": "{}", "name": "{}", "label": "{}", "enabled": {}, "version": "{}"}}"#,
+                    "AsimovModule", uri, name, label, is_enabled, version
                 );
             },
             "cli" | _ => {
