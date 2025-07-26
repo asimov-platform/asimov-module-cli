@@ -84,7 +84,11 @@ enum Command {
 
     /// List all available and/or installed modules
     #[clap(alias = "ls")]
-    List {},
+    List {
+        /// Set the output format [default: cli] [possible values: cli, jsonl]
+        #[arg(value_name = "FORMAT", short = 'o', long)]
+        output: Option<String>,
+    },
 
     /// Resolve a given URL to modules which can handle it
     Resolve {
@@ -159,7 +163,9 @@ pub fn main() -> SysexitsError {
         Command::Inspect { name } => commands::inspect(name, &options.flags),
         Command::Install { names } => commands::install(names, &options.flags),
         Command::Link { name } => commands::link(name, &options.flags),
-        Command::List {} => commands::list(&options.flags),
+        Command::List { output } => {
+            commands::list(output.as_deref().unwrap_or(&"cli"), &options.flags)
+        },
         Command::Resolve { url } => commands::resolve(url, &options.flags),
         Command::Uninstall { names } => commands::uninstall(names, &options.flags),
         Command::Upgrade { names } => commands::upgrade(names, &options.flags),
