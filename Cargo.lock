@@ -189,7 +189,7 @@ dependencies = [
 
 [[package]]
 name = "asimov-module-cli"
-version = "25.0.0-dev.6"
+version = "25.0.0-dev.7"
 dependencies = [
  "asimov-env",
  "asimov-installer",
