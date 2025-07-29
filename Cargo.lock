@@ -126,9 +126,9 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
 name = "asimov-env"
-version = "25.0.0-dev.18"
+version = "25.0.0-dev.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec6284886d205710f49398ab4b03eb034462fdbf380dcc3e2c68512b9634025c"
+checksum = "bb88a5bc9e357292df10afde66a04d9260411652250dc94d208ce4e16a6e9199"
 dependencies = [
  "cap-directories",
  "cap-std",
@@ -138,9 +138,9 @@ dependencies = [
 
 [[package]]
 name = "asimov-installer"
-version = "25.0.0-dev.18"
+version = "25.0.0-dev.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f325694033505d5e3c9c4bd3a02c94e26c0e19b5a49b21be2e458b02aa00f4e"
+checksum = "a27e28cdc38bf60ed1eb634ab9b5a62400a5f6ff138db23dec3e74f7a51f3c7b"
 dependencies = [
  "asimov-env",
  "asimov-module",
@@ -168,9 +168,9 @@ dependencies = [
 
 [[package]]
 name = "asimov-module"
-version = "25.0.0-dev.18"
+version = "25.0.0-dev.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "837d7a16a83baad8df4e73669503c56642b80eec1b52ee573f834bb89461a9d7"
+checksum = "e8c10d67d639bfdd530840d2e269319cee7d2b39ab4e4116961d531a71c9f0e7"
 dependencies = [
  "asimov-env",
  "clientele",
