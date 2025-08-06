@@ -34,9 +34,10 @@ indoc = "2.0"
 temp-dir = "0.1"
 
 [dependencies]
-asimov-env = "25.0.0-dev.20"
-asimov-installer = "25.0.0-dev.19"
-asimov-module = "25.0.0-dev.19"
+asimov-env = "25.0.0-dev.21"
+asimov-installer = "25.0.0-dev.21"
+asimov-module = "25.0.0-dev.21"
+asimov-registry = "25.0.0-dev.21"
 clap = { version = "4.5", default-features = false }
 clientele = { version = "0.3.8", features = ["serde-json", "tokio"] }
 color-print = "=0.3.7"

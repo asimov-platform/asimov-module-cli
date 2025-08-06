@@ -11,12 +11,13 @@ pub async fn upgrade(
     module_names: Vec<String>,
     flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
+    let registry = asimov_registry::Registry::default();
     let installer = asimov_installer::Installer::default();
 
     let module_names = if !module_names.is_empty() {
         module_names
     } else {
-        installer
+        registry
             .installed_modules()
             .await
             .map_err(|e| {
@@ -29,7 +30,7 @@ pub async fn upgrade(
     };
 
     for module_name in module_names {
-        let current = installer.module_version(&module_name).await.map_err(|e| {
+        let current = registry.module_version(&module_name).await.map_err(|e| {
             tracing::error!("<s,r>error:</> failed to read installed version of `{module_name}`");
             EX_UNAVAILABLE
         })?;

@@ -4,21 +4,19 @@ use crate::{
     StandardOptions,
     SysexitsError::{self, *},
 };
-use asimov_module::InstalledModuleManifest;
 use color_print::cprintln;
 
 #[tokio::main]
 pub async fn list(output: &str, flags: &StandardOptions) -> Result<(), SysexitsError> {
-    let installer = asimov_installer::Installer::default();
-    let modules: Vec<InstalledModuleManifest> =
-        installer.installed_modules().await.map_err(|e| {
-            tracing::error!("failed to read installed modules: {e}");
-            EX_UNAVAILABLE
-        })?;
+    let registry = asimov_registry::Registry::default();
+    let modules = registry.installed_modules().await.map_err(|e| {
+        tracing::error!("failed to read installed modules: {e}");
+        EX_UNAVAILABLE
+    })?;
 
     for module in modules {
         let name = module.manifest.name;
-        let is_enabled = installer.is_module_enabled(&name).await.map_err(|e| {
+        let is_enabled = registry.is_module_enabled(&name).await.map_err(|e| {
             tracing::error!("failed to check if module is enabled: {e}");
             EX_UNAVAILABLE
         })?;

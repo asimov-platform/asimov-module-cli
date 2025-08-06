@@ -11,10 +11,10 @@ pub async fn link(
     module_name: impl AsRef<str>,
     _flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
-    let installer = asimov_installer::Installer::default();
+    let registry = asimov_registry::Registry::default();
 
-    let manifest = installer
-        .manifest(module_name)
+    let manifest = registry
+        .read_manifest(module_name)
         .await
         .map_err(|e| {
             tracing::error!("failed to read module manifest: {e}");
