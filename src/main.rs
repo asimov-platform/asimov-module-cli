@@ -142,7 +142,7 @@ pub fn main() -> SysexitsError {
         .build()
         .unwrap()
         .block_on(async {
-            asimov_installer::Installer::default()
+            asimov_registry::Registry::default()
                 .create_file_tree()
                 .await
                 .inspect_err(|e| {

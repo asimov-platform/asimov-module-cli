@@ -14,13 +14,13 @@ pub async fn config(
     mut args: &[String],
     _flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
-    let installer = asimov_installer::Installer::default();
-    let manifest = installer
-        .manifest(&module_name)
+    let registry = asimov_registry::Registry::default();
+    let manifest = registry
+        .read_manifest(&module_name)
         .await
         .map_err(|e| {
             tracing::error!("failed to read manifest for module `{module_name}`: {e}");
-            if let asimov_installer::error::ManifestError::NotInstalled = e {
+            if let asimov_registry::error::ManifestError::NotInstalled = e {
                 ceprintln!(
                     "<s,dim>hint:</> Check if the module is installed with: `asimov module list`"
                 );

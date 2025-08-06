@@ -9,13 +9,13 @@ use color_print::cprintln;
 
 #[tokio::main]
 pub async fn resolve(url: impl AsRef<str>, _flags: &StandardOptions) -> Result<(), SysexitsError> {
-    let installer = asimov_installer::Installer::default();
+    let registry = asimov_registry::Registry::default();
 
-    let manifests = installer
+    let manifests = registry
         .enabled_modules()
         .await
         .map_err(|e| {
-            tracing::error!("failed to read module manifest directory: {e}");
+            tracing::error!("failed to get installed modules: {e}");
             EX_UNAVAILABLE
         })?
         .into_iter()

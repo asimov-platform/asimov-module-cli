@@ -11,10 +11,10 @@ pub async fn browse(
     _flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
     let module_name = module_name.as_ref();
-    let installer = asimov_installer::Installer::default();
+    let registry = asimov_registry::Registry::default();
 
-    let manifest = installer
-        .manifest(&module_name)
+    let manifest = registry
+        .read_manifest(&module_name)
         .await
         .map_err(|e| {
             tracing::error!("failed to read module manifest: {e}");

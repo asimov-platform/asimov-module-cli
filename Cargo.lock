@@ -138,13 +138,11 @@ dependencies = [
 
 [[package]]
 name = "asimov-installer"
-version = "25.0.0-dev.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a27e28cdc38bf60ed1eb634ab9b5a62400a5f6ff138db23dec3e74f7a51f3c7b"
+version = "25.0.0-dev.20"
 dependencies = [
  "asimov-env",
  "asimov-module",
- "bon",
+ "asimov-registry",
  "clientele",
  "dogma",
  "flate2",
@@ -153,24 +151,20 @@ dependencies = [
  "secrecy",
  "serde",
  "serde_json",
- "serde_yml",
+ "serde_yaml_ng",
  "sha2",
- "slab",
  "tar",
  "tempfile",
  "thiserror 2.0.12",
  "tokio",
  "tracing",
  "tracing-subscriber",
- "url",
  "zip",
 ]
 
 [[package]]
 name = "asimov-module"
-version = "25.0.0-dev.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8c10d67d639bfdd530840d2e269319cee7d2b39ab4e4116961d531a71c9f0e7"
+version = "25.0.0-dev.20"
 dependencies = [
  "asimov-env",
  "clientele",
@@ -179,7 +173,7 @@ dependencies = [
  "secrecy",
  "serde",
  "serde_json",
- "serde_yml",
+ "serde_yaml_ng",
  "slab",
  "thiserror 2.0.12",
  "tracing",
@@ -194,6 +188,7 @@ dependencies = [
  "asimov-env",
  "asimov-installer",
  "asimov-module",
+ "asimov-registry",
  "cc",
  "cfg_aliases",
  "clap",
@@ -219,6 +214,29 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "zip",
+]
+
+[[package]]
+name = "asimov-registry"
+version = "25.0.0-dev.20"
+dependencies = [
+ "asimov-env",
+ "asimov-module",
+ "bon",
+ "clientele",
+ "dogma",
+ "getenv",
+ "reqwest",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+ "tar",
+ "tempfile",
+ "thiserror 2.0.12",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -2147,6 +2165,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_yaml_ng"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b4db627b98b36d4203a7b458cf3573730f2bb591b28871d916dfa9efabfd41f"
+dependencies = [
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
+]
+
+[[package]]
 name = "serde_yml"
 version = "0.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2649,6 +2680,12 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "untrusted"

@@ -11,13 +11,13 @@ pub async fn enable(
     module_names: Vec<String>,
     flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
-    let installer = asimov_installer::Installer::default();
+    let registry = asimov_registry::Registry::default();
     for module_name in module_names {
         if flags.verbose > 1 {
             cprintln!("<s,c>»</> Enabling module `{module_name}`...");
         }
 
-        installer.enable_module(&module_name).await.map_err(|e| {
+        registry.enable_module(&module_name).await.map_err(|e| {
             tracing::error!("failed to enable module `{module_name}`: {e}");
             EX_UNAVAILABLE
         })?;
