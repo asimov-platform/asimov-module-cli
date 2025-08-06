@@ -32,16 +32,10 @@ pub async fn list(output: &str, flags: &StandardOptions) -> Result<(), SysexitsE
                 );
             },
             "cli" | _ => {
-                let enabled_txt = if is_enabled {
-                    color_print::cstr!("<s,g>enabled</>")
-                } else {
-                    color_print::cstr!("<s,r>disabled</>")
-                };
-
-                if flags.verbose > 0 {
-                    cprintln!("<s,g>✓</> {}\t{}", name, enabled_txt);
-                } else {
+                if is_enabled {
                     cprintln!("<s,g>✓</> {}", name);
+                } else {
+                    cprintln!("<s,r>✗</> {}", name);
                 }
             },
         }
