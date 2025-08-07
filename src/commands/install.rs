@@ -4,7 +4,7 @@ use crate::{
     StandardOptions,
     SysexitsError::{self, *},
 };
-use asimov_module::{ConfigurationVariable, InstalledModuleManifest};
+use asimov_module::{ConfigurationVariable, InstalledModuleManifest, ReadVarError};
 use color_print::{ceprintln, cprintln};
 
 #[tokio::main]
@@ -70,20 +70,30 @@ pub async fn install(
             EX_UNAVAILABLE
         })?;
 
-        let configured_variables = manifest.manifest.read_variables(None).unwrap_or_default();
-
         let variables = manifest
             .manifest
             .config
-            .map(|conf| conf.variables)
-            .unwrap_or_default();
+            .iter()
+            .flat_map(|conf| conf.variables.iter());
 
         let mut missing_variables = Vec::new();
         for var in variables {
-            if var.default_value.is_some() || configured_variables.contains_key(&var.name) {
+            if var.default_value.is_some() {
                 continue;
             }
-            missing_variables.push(var.clone());
+            match manifest.manifest.variable(&var.name, None) {
+                Ok(_) => (),
+                Err(ReadVarError::UnconfiguredVar(_)) => {
+                    missing_variables.push(var);
+                },
+                Err(e) => {
+                    tracing::error!(
+                        "failed to read configuration variable `{}` for module `{module_name}`: {e}",
+                        var.name
+                    );
+                    return Err(EX_UNAVAILABLE);
+                },
+            }
         }
 
         if missing_variables.is_empty() {
@@ -98,17 +108,19 @@ pub async fn install(
             ceprintln!("<s,dim>hint:</> Module `<s>{module_name}</>` requires configuration:");
 
             for var in missing_variables {
-                let desc_suffix = var
-                    .description
-                    .map(|desc| std::format!(" (Description: \"{desc}\")"))
-                    .unwrap_or("".into());
+                let desc_suffix = if let Some(ref desc) = var.description {
+                    format!(" (Description: \"{desc}\")")
+                } else {
+                    String::new()
+                };
+
                 ceprintln!(
                     "<s,dim>hint:</>   Missing variable: <s>{}</s>{}",
                     var.name,
                     desc_suffix
                 );
 
-                if let Some(env) = var.environment {
+                if let Some(ref env) = var.environment {
                     ceprintln!(
                         "<s,dim>hint:</>   Alternative: set environment variable: <s>{env}</>"
                     );
