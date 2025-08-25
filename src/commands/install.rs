@@ -51,10 +51,8 @@ pub async fn install(
             if flags.verbose > 0 {
                 cprintln!("<s,g>✓</> Installed module `<s>{module_name}</>`.");
             }
-        } else {
-            if flags.verbose > 0 {
-                cprintln!("<s,g>✓</> Module `<s>{module_name}</>` is already installed.");
-            }
+        } else if flags.verbose > 0 {
+            cprintln!("<s,g>✓</> Module `<s>{module_name}</>` is already installed.");
         }
 
         if registry
