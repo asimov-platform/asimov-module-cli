@@ -44,7 +44,7 @@ pub async fn install(
                 .install_module(&module_name, &latest)
                 .await
                 .map_err(|e| {
-                    tracing::error!("failed to install for module `{module_name}`: {e}");
+                    tracing::error!("failed to install module `{module_name}`: {e}");
                     EX_UNAVAILABLE
                 })?;
 
