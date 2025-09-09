@@ -53,9 +53,13 @@ pub async fn config(
             .join(profile)
             .join(&module_name);
 
-        tokio::fs::create_dir_all(&conf_dir).await.inspect_err(|e| {
-            ceprintln!("<s,r>error:</> failed to create configuration directory for module `{module_name}`: {e}");
-        })?;
+        tokio::fs::create_dir_all(&conf_dir)
+            .await
+            .inspect_err(|e| {
+                tracing::error!(
+                    "failed to create configuration directory for module `{module_name}`: {e}"
+                )
+            })?;
 
         if args.is_empty() {
             // interactively prompt for each value in the config
@@ -188,7 +192,7 @@ pub async fn config(
             .stdout(std::process::Stdio::inherit())
             .stderr(std::process::Stdio::inherit())
             .status()
-            .inspect_err(|e| ceprintln!("<s,r>error:</> failed to execute configurator: {e}"))?;
+            .inspect_err(|e| tracing::error!("failed to execute configurator: {e}"))?;
     }
 
     Ok(())

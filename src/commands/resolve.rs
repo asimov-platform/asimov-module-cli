@@ -27,7 +27,7 @@ pub async fn resolve(url: impl AsRef<str>, _flags: &StandardOptions) -> Result<(
     let url = url.as_ref().to_string();
     let url = normalize_url(&url)
         .inspect_err(|e| {
-            tracing::error!("Proceeding with given unmodified URL, normalization failed: {e}, ")
+            tracing::error!("proceeding with given unmodified URL, normalization failed: {e}, ")
         })
         .unwrap_or(url);
 

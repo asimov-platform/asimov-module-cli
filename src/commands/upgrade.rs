@@ -21,7 +21,7 @@ pub async fn upgrade(
             .installed_modules()
             .await
             .map_err(|e| {
-                tracing::error!("<s,r>error:</> failed to read installed modules: {e}");
+                tracing::error!("failed to read installed modules: {e}");
                 EX_UNAVAILABLE
             })?
             .into_iter()
@@ -31,7 +31,7 @@ pub async fn upgrade(
 
     for module_name in module_names {
         let current = registry.module_version(&module_name).await.map_err(|e| {
-            tracing::error!("<s,r>error:</> failed to read installed version of `{module_name}`");
+            tracing::error!("failed to read installed version of `{module_name}`");
             EX_UNAVAILABLE
         })?;
 
