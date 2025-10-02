@@ -160,13 +160,6 @@ pub fn main() -> SysexitsError {
     let result = match options.command.unwrap() {
         Command::Browse { name } => commands::browse(name, &options.flags),
         Command::Config { name, unset, args } => {
-            if args.len() > 1 && args.len() % 2 != 0 {
-                use clientele::crates::clap::CommandFactory;
-                if let Some(subcommand) = Options::command().find_subcommand_mut("config") {
-                    let _ = subcommand.print_help();
-                }
-                return EX_USAGE;
-            }
             commands::config(name, unset, &args, &options.flags)
         },
         Command::Disable { names } => commands::disable(names, &options.flags),

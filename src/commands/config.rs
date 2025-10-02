@@ -176,6 +176,13 @@ pub async fn config(
 
                 tokio::fs::write(&var_file, &value).await?;
             }
+        } else {
+            ceprintln!(
+                "<s,r>error:</> Invalid number of arguments: expected 0, 1, or key-value pairs (even count), got {}",
+                args.len()
+            );
+
+            return Err(EX_USAGE);
         }
     }
 
