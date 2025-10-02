@@ -162,8 +162,12 @@ pub async fn config(
         } else if args.len() % 2 == 0 {
             // pair(s) of (key,value), write into config file(s)
 
-            let (chunks, _rem) = args.as_chunks();
-            for [name, value] in chunks {
+            let mut chunks = args.chunks_exact(2);
+            loop {
+                let Some([name, value]) = chunks.next() else {
+                    break;
+                };
+
                 // must be a known configuration variable, otherwise stop
                 if !conf_vars.iter().any(|var| var.name == *name) {
                     ceprintln!(
