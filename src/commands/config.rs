@@ -1,7 +1,7 @@
 // This is free and unencumbered software released into the public domain.
 
 use asimov_env::paths::asimov_root;
-use asimov_module::ModuleManifest;
+use asimov_module::{ModuleManifest, ReadVarError};
 use clientele::{
     StandardOptions,
     SysexitsError::{self, *},
@@ -118,35 +118,32 @@ pub async fn config(
                     writeln!(&mut stdout, "Description: {desc}");
                 }
 
-                let value = loop {
-                    write!(&mut stdout, "> ")?;
-                    stdout.flush()?;
-
-                    match stdin.next() {
-                        Some(Ok(line))
-                            if current_value.is_none() && is_required && line.is_empty() =>
-                        {
-                            continue;
-                        },
-                        Some(Ok(line)) => break line,
-                        Some(Err(e)) => return Err(e.into()),
-                        None => return Err(EX_NOINPUT),
-                    }
-                };
+                write!(&mut stdout, "> ")?;
+                stdout.flush()?;
+                let value = stdin.next().ok_or(EX_NOINPUT)??;
                 let value = value.trim();
                 if value.is_empty() {
                     continue;
                 }
+
                 tokio::fs::write(&var_file, &value).await?;
             }
 
-            let vars = manifest.read_variables(None).map_err(|e| {
-                ceprintln!("<s,r>error:</> {e}");
-                EX_UNAVAILABLE
-            })?;
-            writeln!(&mut stdout, "Configuration: ")?;
-            for (name, value) in vars {
-                writeln!(&mut stdout, "\t{name}: {value}")?;
+            writeln!(&mut stdout, "Configuration:")?;
+            for var in conf_vars {
+                manifest
+                    .variable(&var.name, Some(profile))
+                    .inspect(|val| {
+                        writeln!(&mut stdout, "\t{}: {}", var.name, val);
+                    })
+                    .inspect_err(|e| match e {
+                        asimov_module::ReadVarError::UnconfiguredVar(_) => {
+                            ceprintln!("\t{}: <s,y>warn:</> {e}", var.name);
+                        },
+                        _ => {
+                            ceprintln!("\t{}: <s,r>error:</> {e}", var.name);
+                        },
+                    });
             }
         } else if args.len() == 1 {
             // one arg, fetch the value
