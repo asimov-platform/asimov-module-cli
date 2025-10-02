@@ -172,9 +172,9 @@ pub async fn config(
                 // must be a known configuration variable, otherwise stop
                 if !conf_vars.iter().any(|var| var.name == *name) {
                     ceprintln!(
-                        "<s,y>warn:</> `{name}` is not the name of a configuration variable for <s>{module_name}</> module"
+                        "<s,r>error:</> `{name}` is not the name of a configuration variable for <s>{module_name}</> module"
                     );
-                    break;
+                    return Err(EX_USAGE);
                 }
 
                 let var_file = conf_dir.join(name);
