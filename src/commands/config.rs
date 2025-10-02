@@ -40,17 +40,7 @@ pub async fn config(
         .map(|c| c.variables.as_slice())
         .unwrap_or_default();
 
-    let first_arg_is_key = if args.is_empty() {
-        false
-    } else {
-        manifest
-            .config
-            .as_ref()
-            .and_then(|conf| conf.variables.first())
-            .is_some_and(|var| var.name == args[0])
-    };
-
-    if !conf_vars.is_empty() && (args.is_empty() || first_arg_is_key) {
+    if !conf_vars.is_empty() {
         let profile = "default"; // TODO
 
         let conf_dir = asimov_root()
