@@ -16,7 +16,7 @@ use std::{
 pub async fn config(
     module_name: String,
     unset: bool,
-    mut args: &[String],
+    args: &[String],
     _flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
     let registry = asimov_registry::Registry::default();
@@ -157,8 +157,6 @@ pub async fn config(
                 if let Ok(current) = tokio::fs::read_to_string(&var_file).await {
                     println!("{}", current.trim());
                 }
-                // make args empty to not pass the same key to configurator
-                args = &[];
             } else {
                 ceprintln!("<s,r>error:</> unrecognized configuration variable key: `{name}`");
                 return Err(EX_USAGE);
@@ -178,8 +176,7 @@ pub async fn config(
                     );
                     break;
                 }
-                // re-slice the args
-                args = rest;
+
                 let var_file = conf_dir.join(name);
 
                 tokio::fs::write(&var_file, &value).await?;
@@ -197,7 +194,6 @@ pub async fn config(
 
     if provides_configurator && configurator_exists {
         std::process::Command::new(&conf_bin)
-            .args(args.iter())
             .stdin(std::process::Stdio::inherit())
             .stdout(std::process::Stdio::inherit())
             .stderr(std::process::Stdio::inherit())
