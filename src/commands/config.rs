@@ -98,8 +98,6 @@ pub async fn config(
 
                 let current_value = tokio::fs::read_to_string(&var_file).await.ok();
 
-                let is_required = var.default_value.is_none();
-
                 let info_text = if current_value.is_some() {
                     "(press Enter to keep current)"
                 } else if let Some(default_value) = &var.default_value {
@@ -164,11 +162,8 @@ pub async fn config(
         } else if args.len() % 2 == 0 {
             // pair(s) of (key,value), write into config file(s)
 
-            loop {
-                // split a 2-tuple from args
-                let Some(([name, value], rest)) = args.split_first_chunk() else {
-                    break;
-                };
+            let (chunks, _rem) = args.as_chunks();
+            for [name, value] in chunks {
                 // must be a known configuration variable, otherwise stop
                 if !conf_vars.iter().any(|var| var.name == *name) {
                     ceprintln!(
