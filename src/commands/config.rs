@@ -169,8 +169,6 @@ pub async fn config(
         } else if args.len() % 2 == 0 {
             // pair(s) of (key,value), write into config file(s)
 
-            let mut stdin = std::io::stdin().lock().lines();
-
             loop {
                 // split a 2-tuple from args
                 let Some(([name, value], rest)) = args.split_first_chunk() else {
@@ -186,18 +184,6 @@ pub async fn config(
                 // re-slice the args
                 args = rest;
                 let var_file = conf_dir.join(name);
-
-                // confirm that user wants to overwrite
-                if var_file.exists() {
-                    let current = tokio::fs::read_to_string(&var_file).await?;
-                    println!("Current value for `{name}`: {}", current.trim());
-                    print!("Overwrite? [y/N]: ");
-
-                    let input = stdin.next().ok_or(EX_NOINPUT)??;
-                    if !input.trim().eq_ignore_ascii_case("y") {
-                        continue;
-                    }
-                }
 
                 tokio::fs::write(&var_file, &value).await?;
             }
