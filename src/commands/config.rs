@@ -1,16 +1,21 @@
 // This is free and unencumbered software released into the public domain.
 
 use asimov_env::paths::asimov_root;
+use asimov_module::ModuleManifest;
 use clientele::{
     StandardOptions,
     SysexitsError::{self, *},
 };
 use color_print::ceprintln;
-use std::io::{BufRead, Write};
+use std::{
+    io::{BufRead, Write},
+    path::Path,
+};
 
 #[tokio::main]
 pub async fn config(
     module_name: String,
+    unset: bool,
     mut args: &[String],
     _flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
@@ -60,6 +65,35 @@ pub async fn config(
                     "failed to create configuration directory for module `{module_name}`: {e}"
                 )
             })?;
+
+        if unset {
+            let vars: Vec<String> = if !args.is_empty() {
+                args.to_vec()
+            } else if let Some(conf) = manifest.config {
+                // unset all vars
+                conf.variables.into_iter().map(|v| v.name).collect()
+            } else {
+                return Ok(());
+            };
+
+            for var in &vars {
+                let var_file = conf_dir.join(var);
+                tokio::fs::remove_file(&var_file)
+                    .await
+                    .or_else(|e| {
+                        if e.kind() == tokio::io::ErrorKind::NotFound {
+                            Ok(())
+                        } else {
+                            Err(e)
+                        }
+                    })
+                    .inspect_err(|e| {
+                        tracing::error!("failed to unset configuration variable `{var}`: {e}")
+                    })?;
+            }
+
+            return Ok(()); // exit, without calling configurator
+        }
 
         if args.is_empty() {
             // interactively prompt for each value in the config
@@ -154,6 +188,9 @@ pub async fn config(
                 };
                 // must be a known configuration variable, otherwise stop
                 if !conf_vars.iter().any(|var| var.name == *name) {
+                    ceprintln!(
+                        "<s,y>warn:</> `{name}` is not the name of a configuration variable for <s>{module_name}</> module"
+                    );
                     break;
                 }
                 // re-slice the args
