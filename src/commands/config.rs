@@ -182,7 +182,7 @@ pub async fn config(
             }
         } else {
             ceprintln!(
-                "<s,r>error:</> Invalid number of arguments: expected 0, 1, or key-value pairs (even count), got {}",
+                "<s,r>error:</> invalid number of arguments: expected 0, 1, or key-value pairs (even count), got {}",
                 args.len()
             );
 
