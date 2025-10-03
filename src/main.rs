@@ -37,6 +37,11 @@ enum Command {
         /// The name of the module to configure
         name: String,
 
+        /// Unset configured variable(s). By default all when no arguments provided.
+        #[arg(short = 'u', long, default_value = "false")]
+        unset: bool,
+
+        /// A single configuration variable to read, or key-value pair(s) to be set.
         #[clap(trailing_var_arg = true)]
         args: Vec<String>,
     },
@@ -154,7 +159,9 @@ pub fn main() -> SysexitsError {
     // Execute the given command:
     let result = match options.command.unwrap() {
         Command::Browse { name } => commands::browse(name, &options.flags),
-        Command::Config { name, args } => commands::config(name, &args, &options.flags),
+        Command::Config { name, unset, args } => {
+            commands::config(name, unset, &args, &options.flags)
+        },
         Command::Disable { names } => commands::disable(names, &options.flags),
         Command::Enable { names } => commands::enable(names, &options.flags),
         #[cfg(feature = "unstable")]
