@@ -4,7 +4,7 @@ use crate::{
     StandardOptions,
     SysexitsError::{self, *},
 };
-use asimov_module::{resolve::Resolver, url::normalize_url};
+use asimov_module::{normalization::normalize_url, resolve::Resolver};
 use color_print::cprintln;
 
 #[tokio::main]
@@ -33,7 +33,8 @@ pub async fn resolve(url: impl AsRef<str>, _flags: &StandardOptions) -> Result<(
 
     let modules = resolver
         .resolve(&url)
-        .inspect_err(|e| tracing::error!("failed to resolve modules for URL `{url}`: {e}"))?;
+        .inspect_err(|e| tracing::error!("failed to resolve modules for URL `{url}`: {e}"))
+        .map_err(|_| EX_USAGE)?;
 
     for module in modules {
         cprintln!("{}", module.name);

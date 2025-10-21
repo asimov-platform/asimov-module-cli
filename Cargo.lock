@@ -117,9 +117,9 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
 name = "asimov-env"
-version = "25.0.0-dev.23"
+version = "25.0.0-dev.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fc51032553521b4887f8e5eeeb01566d0e44fcf98dbc71ee0ec85cb54d68848"
+checksum = "a84c2d936c0a4f3943a94ac982a326c9116c7bb539ddf83e8bc2a0b974868b88"
 dependencies = [
  "cap-directories",
  "cap-std",
@@ -129,9 +129,9 @@ dependencies = [
 
 [[package]]
 name = "asimov-installer"
-version = "25.0.0-dev.23"
+version = "25.0.0-dev.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c7e523f8b397816496208a0db076fdbdc84fc7553ee0e067f8287f78726754a"
+checksum = "58ef6f207cc9597a4c19b744c38fc42729f78e56f2420e60f72a9f554699cac5"
 dependencies = [
  "asimov-env",
  "asimov-module",
@@ -157,15 +157,16 @@ dependencies = [
 
 [[package]]
 name = "asimov-module"
-version = "25.0.0-dev.23"
+version = "25.0.0-dev.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de3d2cb247c8f3dbba04919b4f23db19d9065cc0c0579c485f85302f1012312a"
+checksum = "261daa99dea015603ce9372710d6fee0456a404bf39a9552abb4138910501371"
 dependencies = [
  "asimov-env",
  "clientele",
  "dogma",
  "getenv",
  "iri-string",
+ "mime",
  "secrecy",
  "serde",
  "serde_json",
@@ -214,9 +215,9 @@ dependencies = [
 
 [[package]]
 name = "asimov-registry"
-version = "25.0.0-dev.23"
+version = "25.0.0-dev.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af0074ece0440dfaf5d15e384f9f5bc753530d2a32b944c55fd32934dac0692f"
+checksum = "aa6a90c9302a244255886993e0cb2e9b5f745aa09bfbc024c0039a6a2dd12abd"
 dependencies = [
  "asimov-env",
  "asimov-module",
@@ -703,7 +704,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.0",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1525,6 +1526,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32a282da65faaf38286cf3be983213fcf1d2e2a58700e808f83f4ea9a4804bc0"
 
 [[package]]
+name = "mime"
+version = "0.3.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2339,7 +2346,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
