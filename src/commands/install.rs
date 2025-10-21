@@ -32,12 +32,12 @@ pub async fn install(
 
             if flags.verbose > 0 {
                 cprintln!(
-                    "<s,g>✓</> Found latest version <s>{latest}</> for module `<s>{module_name}</>`."
+                    "<s,g>✓</> Found latest version <s>{latest}</> for module <s>{module_name}</>."
                 );
             }
 
             if flags.verbose > 1 {
-                cprintln!("<s,c>»</> Installing module `<s>{module_name}</>`...");
+                cprintln!("<s,c>»</> Installing module <s>{module_name}</>...");
             }
 
             installer
@@ -49,10 +49,10 @@ pub async fn install(
                 })?;
 
             if flags.verbose > 0 {
-                cprintln!("<s,g>✓</> Installed module `<s>{module_name}</>`.");
+                cprintln!("<s,g>✓</> Installed module <s>{module_name}</>.");
             }
         } else if flags.verbose > 0 {
-            cprintln!("<s,g>✓</> Module `<s>{module_name}</>` is already installed.");
+            cprintln!("<s,g>✓</> Module <s>{module_name}</> is already installed.");
         }
 
         if registry
@@ -101,9 +101,9 @@ pub async fn install(
             })?;
         } else {
             ceprintln!(
-                "<s,y>warn:</> Module `<s>{module_name}</>` can't be enabled automatically due to missing configuration."
+                "<s,y>warn:</> Module <s>{module_name}</> can't be enabled automatically due to missing configuration."
             );
-            ceprintln!("<s,dim>hint:</> Module `<s>{module_name}</>` requires configuration:");
+            ceprintln!("<s,dim>hint:</> Module <s>{module_name}</> requires configuration:");
 
             for var in missing_variables {
                 let desc_suffix = if let Some(ref desc) = var.description {

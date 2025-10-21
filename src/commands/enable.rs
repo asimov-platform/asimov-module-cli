@@ -14,7 +14,7 @@ pub async fn enable(
     let registry = asimov_registry::Registry::default();
     for module_name in module_names {
         if flags.verbose > 1 {
-            cprintln!("<s,c>»</> Enabling module `{module_name}`...");
+            cprintln!("<s,c>»</> Enabling module <s>{module_name}</>...");
         }
 
         registry.enable_module(&module_name).await.map_err(|e| {
@@ -23,7 +23,7 @@ pub async fn enable(
         })?;
 
         if flags.verbose > 0 {
-            cprintln!("<s,g>✓</> Enabled module `{module_name}`.");
+            cprintln!("<s,g>✓</> Enabled module <s>{module_name}</>.");
         }
     }
     Ok(())

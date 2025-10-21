@@ -46,14 +46,14 @@ pub async fn upgrade(
         if current.is_some_and(|current| current == latest) {
             if flags.verbose > 0 {
                 cprintln!(
-                    "<s,g>✓</> Module `{module_name}` already has latest version <s>{latest}</> installed."
+                    "<s,g>✓</> Module <s>{module_name}</> already has latest version <s>{latest}</> installed."
                 );
             }
             continue;
         }
 
         if flags.verbose > 1 {
-            cprintln!("<s,c>»</> Upgrading module `{module_name}`...");
+            cprintln!("<s,c>»</> Upgrading module <s>{module_name}</>...");
         }
 
         installer
@@ -65,7 +65,7 @@ pub async fn upgrade(
             })?;
 
         if flags.verbose > 0 {
-            cprintln!("<s,g>✓</> Upgraded module `{module_name}` to version <s>{latest}</>.");
+            cprintln!("<s,g>✓</> Upgraded module <s>{module_name}</> to version <s>{latest}</>.");
         }
     }
     Ok(())

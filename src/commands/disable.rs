@@ -14,7 +14,7 @@ pub async fn disable(
     let registry = asimov_registry::Registry::default();
     for module_name in module_names {
         if flags.verbose > 1 {
-            cprintln!("<s,c>»</> Disabling module `{module_name}`...");
+            cprintln!("<s,c>»</> Disabling module <s>{module_name}</>...");
         }
 
         registry.disable_module(&module_name).await.map_err(|e| {
@@ -23,7 +23,7 @@ pub async fn disable(
         })?;
 
         if flags.verbose > 0 {
-            cprintln!("<s,g>✓</> Disabled module `{module_name}`.");
+            cprintln!("<s,g>✓</> Disabled module <s>{module_name}</>.");
         }
     }
     Ok(())

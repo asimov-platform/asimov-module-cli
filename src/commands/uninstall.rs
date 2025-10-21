@@ -14,7 +14,7 @@ pub async fn uninstall(
     let installer = asimov_installer::Installer::default();
     for module_name in module_names {
         if flags.verbose > 1 {
-            cprintln!("<s,c>»</> Uninstalling the module `{}`...", module_name);
+            cprintln!("<s,c>»</> Uninstalling the module <s>{module_name}</>...");
         }
 
         installer
@@ -26,7 +26,7 @@ pub async fn uninstall(
             })?;
 
         if flags.verbose > 0 {
-            cprintln!("<s,g>✓</> Uninstalled the module `{module_name}`.");
+            cprintln!("<s,g>✓</> Uninstalled the module <s>{module_name}</>.");
         }
     }
     Ok(())

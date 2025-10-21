@@ -27,7 +27,7 @@ pub async fn config(
             tracing::error!("failed to read manifest for module `{module_name}`: {e}");
             if let asimov_registry::error::ManifestError::NotInstalled = e {
                 ceprintln!(
-                    "<s,dim>hint:</> Check if the module is installed with: `asimov module list`"
+                    "<s,dim>hint:</> Check if the module is installed with: <s>asimov module list</>"
                 );
             }
             EX_UNAVAILABLE

@@ -12,7 +12,7 @@ pub fn find(module_name: impl AsRef<str>, _flags: &StandardOptions) -> Result<()
             Ok(())
         },
         None => {
-            eprintln!("unknown module: {module_name}");
+            eprintln!("unknown module: `{module_name}`");
             Err(SysexitsError::EX_UNAVAILABLE)
         },
     }

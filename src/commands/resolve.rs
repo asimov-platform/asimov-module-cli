@@ -33,7 +33,7 @@ pub async fn resolve(url: impl AsRef<str>, _flags: &StandardOptions) -> Result<(
 
     let modules = resolver
         .resolve(&url)
-        .inspect_err(|e| tracing::error!("failed to resolve modules for URL `{url}`: {e}"))
+        .inspect_err(|e| tracing::error!("failed to resolve modules for URL <s>{url}</>: {e}"))
         .map_err(|_| EX_USAGE)?;
 
     for module in modules {
