@@ -78,6 +78,15 @@ enum Command {
     Install {
         /// The names of the modules to install
         names: Vec<String>,
+
+        /// Optionally install a specific version instead of latest
+        #[arg(long)]
+        version: Option<String>,
+
+        /// Optionally specify desired model size to download for module.
+        /// Only affects modules which require models.
+        #[arg(long)]
+        model_size: Option<String>,
     },
 
     /// Print the module's package link
@@ -114,6 +123,15 @@ enum Command {
     Upgrade {
         /// The names of the modules to upgrade
         names: Vec<String>,
+
+        /// Optionally upgrade to a specific version instead of latest
+        #[arg(long)]
+        version: Option<String>,
+
+        /// Optionally specify desired model size to download for module.
+        /// Only affects modules which require models.
+        #[arg(long)]
+        model_size: Option<String>,
     },
 }
 
@@ -168,14 +186,22 @@ pub fn main() -> SysexitsError {
         Command::Find { name } => commands::find(name, &options.flags),
         #[cfg(feature = "unstable")]
         Command::Inspect { name } => commands::inspect(name, &options.flags),
-        Command::Install { names } => commands::install(names, &options.flags),
+        Command::Install {
+            names,
+            version,
+            model_size,
+        } => commands::install(names, version, model_size, &options.flags),
         Command::Link { name } => commands::link(name, &options.flags),
         Command::List { output } => {
             commands::list(output.as_deref().unwrap_or(&"cli"), &options.flags)
         },
         Command::Resolve { url } => commands::resolve(url, &options.flags),
         Command::Uninstall { names } => commands::uninstall(names, &options.flags),
-        Command::Upgrade { names } => commands::upgrade(names, &options.flags),
+        Command::Upgrade {
+            names,
+            version,
+            model_size,
+        } => commands::upgrade(names, version, model_size, &options.flags),
     };
 
     match result {

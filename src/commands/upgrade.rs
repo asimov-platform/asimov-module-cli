@@ -4,11 +4,14 @@ use crate::{
     StandardOptions,
     SysexitsError::{self, *},
 };
-use color_print::cprintln;
+use asimov_installer::InstallOptions;
+use color_print::{cprintln, cstr};
 
 #[tokio::main]
 pub async fn upgrade(
     module_names: Vec<String>,
+    version: Option<String>,
+    model_size: Option<String>,
     flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
     let registry = asimov_registry::Registry::default();
@@ -29,24 +32,41 @@ pub async fn upgrade(
             .collect()
     };
 
+    let install_options = InstallOptions::builder()
+        .maybe_version(version.clone())
+        .maybe_model_size(model_size)
+        .build();
+
     for module_name in module_names {
         let current = registry.module_version(&module_name).await.map_err(|e| {
             tracing::error!("failed to read installed version of `{module_name}`");
             EX_UNAVAILABLE
         })?;
 
-        let latest = installer
-            .fetch_latest_release(&module_name)
-            .await
-            .map_err(|e| {
-                tracing::error!("unable to find latest release for module `{module_name}`: {e}");
-                EX_UNAVAILABLE
-            })?;
+        let target_version = if let Some(ref want) = version {
+            want.clone()
+        } else {
+            installer
+                .fetch_latest_release(&module_name)
+                .await
+                .map_err(|e| {
+                    tracing::error!(
+                        "unable to find latest release for module `{module_name}`: {e}"
+                    );
+                    EX_UNAVAILABLE
+                })?
+        };
 
-        if current.is_some_and(|current| current == latest) {
+        if current.is_some_and(|current| current == target_version) {
             if flags.verbose > 0 {
+                let vers_txt = if version.is_some() {
+                    "version"
+                } else {
+                    "latest version"
+                };
+
                 cprintln!(
-                    "<s,g>✓</> Module <s>{module_name}</> already has latest version <s>{latest}</> installed."
+                    "<s,g>✓</> Module <s>{module_name}</> already has {vers_txt} <s>{target_version}</> installed."
                 );
             }
             continue;
@@ -57,7 +77,7 @@ pub async fn upgrade(
         }
 
         installer
-            .upgrade_module(&module_name, &latest)
+            .upgrade_module(module_name.clone(), &install_options)
             .await
             .map_err(|e| {
                 tracing::error!("module upgrade failed for `{module_name}`: {e}");
@@ -65,7 +85,9 @@ pub async fn upgrade(
             })?;
 
         if flags.verbose > 0 {
-            cprintln!("<s,g>✓</> Upgraded module <s>{module_name}</> to version <s>{latest}</>.");
+            cprintln!(
+                "<s,g>✓</> Upgraded module <s>{module_name}</> to version <s>{target_version}</>."
+            );
         }
     }
     Ok(())

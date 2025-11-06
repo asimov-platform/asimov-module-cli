@@ -4,35 +4,48 @@ use crate::{
     StandardOptions,
     SysexitsError::{self, *},
 };
+use asimov_installer::InstallOptions;
 use asimov_module::{ConfigurationVariable, InstalledModuleManifest, ReadVarError};
 use color_print::{ceprintln, cprintln};
 
 #[tokio::main]
 pub async fn install(
     module_names: Vec<String>,
+    version: Option<String>,
+    model_size: Option<String>,
     flags: &StandardOptions,
 ) -> Result<(), SysexitsError> {
     let registry = asimov_registry::Registry::default();
     let installer = asimov_installer::Installer::default();
+
+    let install_options = InstallOptions::builder()
+        .maybe_version(version.clone())
+        .maybe_model_size(model_size)
+        .build();
+
     for module_name in module_names {
         if !registry
             .is_module_installed(&module_name)
             .await
             .unwrap_or(false)
         {
-            let latest = installer
-                .fetch_latest_release(&module_name)
-                .await
-                .map_err(|e| {
-                    tracing::error!(
-                        "unable to find latest release for module `{module_name}`: {e}"
-                    );
-                    EX_UNAVAILABLE
-                })?;
+            let target_version = if let Some(ref want) = version {
+                want.clone()
+            } else {
+                installer
+                    .fetch_latest_release(&module_name)
+                    .await
+                    .map_err(|e| {
+                        tracing::error!(
+                            "unable to find latest release for module `{module_name}`: {e}"
+                        );
+                        EX_UNAVAILABLE
+                    })?
+            };
 
             if flags.verbose > 0 {
                 cprintln!(
-                    "<s,g>✓</> Found latest version <s>{latest}</> for module <s>{module_name}</>."
+                    "<s,g>✓</> Found version <s>{target_version}</> for module <s>{module_name}</>."
                 );
             }
 
@@ -41,7 +54,7 @@ pub async fn install(
             }
 
             installer
-                .install_module(&module_name, &latest)
+                .install_module(module_name.clone(), &install_options)
                 .await
                 .map_err(|e| {
                     tracing::error!("failed to install module `{module_name}`: {e}");
