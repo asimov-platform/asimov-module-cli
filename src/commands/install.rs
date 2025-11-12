@@ -5,12 +5,12 @@ use crate::{
     SysexitsError::{self, *},
 };
 use asimov_installer::InstallOptions;
-use asimov_module::{ConfigurationVariable, InstalledModuleManifest, ReadVarError};
+use asimov_module::{ConfigurationVariable, InstalledModuleManifest, ModuleManifest, ReadVarError};
 use color_print::{ceprintln, cprintln};
 
 #[tokio::main]
 pub async fn install(
-    module_names: Vec<String>,
+    mut module_names: Vec<String>,
     version: Option<String>,
     model_size: Option<String>,
     flags: &StandardOptions,
@@ -22,6 +22,13 @@ pub async fn install(
         .maybe_version(version.clone())
         .maybe_model_size(model_size)
         .build();
+
+    if module_names.len() == 1 && module_names[0] == "all" {
+        module_names = fetch_all_module_names().await.map_err(|e| {
+            tracing::error!("unable to fetch list of all modules: {e}");
+            EX_UNAVAILABLE
+        })?;
+    }
 
     for module_name in module_names {
         if !registry
@@ -144,4 +151,39 @@ pub async fn install(
     }
 
     Ok(())
+}
+
+pub async fn fetch_all_module_names() -> Result<Vec<String>, Box<dyn core::error::Error>> {
+    let url = "https://github.com/asimov-modules/asimov-modules/raw/master/all/.asimov/module.yaml";
+
+    let client = reqwest::Client::builder()
+        .user_agent("asimov-module-cli")
+        .connect_timeout(std::time::Duration::from_secs(10))
+        .read_timeout(std::time::Duration::from_secs(30))
+        .build()
+        .expect("Failed to build HTTP client");
+
+    let response = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| format!("request failed: {e}"))?;
+
+    if !response.status().is_success() {
+        Err(format!(
+            "HTTP status code was not successful: {0}",
+            response.status()
+        ))?;
+    }
+
+    let content = response
+        .text()
+        .await
+        .inspect_err(|err| tracing::debug!(?err))?;
+
+    let manifest: ModuleManifest = serde_yml::from_str(&content)
+        .inspect_err(|err| tracing::debug!(?err, ?content))
+        .map_err(|e| format!("unable to deserialize GitHub response: {e}"))?;
+
+    Ok(manifest.requires.unwrap_or_default().modules)
 }
