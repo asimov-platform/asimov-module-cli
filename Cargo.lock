@@ -117,9 +117,9 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
 name = "asimov-env"
-version = "25.0.0"
+version = "25.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a7c3435e329af7d82158e6243afbe5b418ce4410d8277da3f3a9aa8108f71d5"
+checksum = "c2c38eb82497127587d1c8d845e42762a94f1fa98817dc8317c09cc700f84434"
 dependencies = [
  "cap-directories",
  "cap-std",
@@ -129,9 +129,9 @@ dependencies = [
 
 [[package]]
 name = "asimov-huggingface"
-version = "25.0.0-dev.25"
+version = "25.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a8db971d72fceeb7e257fdf83eefa4fa61d97e0ae3d30e109664e1aaa22f002"
+checksum = "7fcf5805b34f46cfb72a5861e986c87945ed7cefa502775d0b47fcfce89054bd"
 dependencies = [
  "hf-hub",
  "indicatif",
@@ -140,9 +140,9 @@ dependencies = [
 
 [[package]]
 name = "asimov-installer"
-version = "25.0.0-dev.25"
+version = "25.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "048cda6b6fac480045a9626675d46e2d6eda5913354276fca7c7f39de7338804"
+checksum = "07f0340eefb54ae40b3c097881582e4444781ac92edab76b808f83b8cf40c5b1"
 dependencies = [
  "asimov-env",
  "asimov-huggingface",
@@ -170,9 +170,9 @@ dependencies = [
 
 [[package]]
 name = "asimov-module"
-version = "25.0.0-dev.25"
+version = "25.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92aaf2491fd70edb8b3ebd25ed801e604d729799a6d54a7521b8fb55a94cb5c8"
+checksum = "bb44814ad33f01946ec11a1135585dda7e3b461982cd511488c6c717d4d8b100"
 dependencies = [
  "asimov-env",
  "clientele",
@@ -193,7 +193,7 @@ dependencies = [
 
 [[package]]
 name = "asimov-module-cli"
-version = "25.0.0"
+version = "25.0.1"
 dependencies = [
  "asimov-env",
  "asimov-installer",
@@ -228,9 +228,9 @@ dependencies = [
 
 [[package]]
 name = "asimov-registry"
-version = "25.0.0-dev.25"
+version = "25.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4fab4aadb9cc553f29e3a578a966c5a3650bf214cc5bbcfaf85c66e15baabe0"
+checksum = "9fdc4a07a8db961aac93e930d1bbee4a1d42dbb0c1228f7f7d4f19821e968960"
 dependencies = [
  "asimov-env",
  "asimov-module",
