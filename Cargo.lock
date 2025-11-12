@@ -117,9 +117,9 @@ checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
 name = "asimov-env"
-version = "25.0.1"
+version = "25.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2c38eb82497127587d1c8d845e42762a94f1fa98817dc8317c09cc700f84434"
+checksum = "59240068f0c558026d60bc1ff0af5d6ad5039f096a0ddd2ac8478b3aa70d0bf5"
 dependencies = [
  "cap-directories",
  "cap-std",
@@ -129,9 +129,9 @@ dependencies = [
 
 [[package]]
 name = "asimov-huggingface"
-version = "25.0.1"
+version = "25.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fcf5805b34f46cfb72a5861e986c87945ed7cefa502775d0b47fcfce89054bd"
+checksum = "5e86f472b5037135c45c43bf8eb1b82087d5cdd141d7c5692bfad216f4470655"
 dependencies = [
  "hf-hub",
  "indicatif",
@@ -140,9 +140,9 @@ dependencies = [
 
 [[package]]
 name = "asimov-installer"
-version = "25.0.1"
+version = "25.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07f0340eefb54ae40b3c097881582e4444781ac92edab76b808f83b8cf40c5b1"
+checksum = "3e4524b02cb8cf63ca72fb055cb54b22c7d1b0448815a0470a0b29c64c7dd333"
 dependencies = [
  "asimov-env",
  "asimov-huggingface",
@@ -170,9 +170,9 @@ dependencies = [
 
 [[package]]
 name = "asimov-module"
-version = "25.0.1"
+version = "25.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb44814ad33f01946ec11a1135585dda7e3b461982cd511488c6c717d4d8b100"
+checksum = "daf5d03eec28785668aa7d8a83c65a21ff87552cf402fed80c4efa28c57284bb"
 dependencies = [
  "asimov-env",
  "clientele",
@@ -228,9 +228,9 @@ dependencies = [
 
 [[package]]
 name = "asimov-registry"
-version = "25.0.1"
+version = "25.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fdc4a07a8db961aac93e930d1bbee4a1d42dbb0c1228f7f7d4f19821e968960"
+checksum = "61d5bf1b49a6af46940a2828b3ec11b9b508d2ef2855989a7f65af6ed9b8a5fa"
 dependencies = [
  "asimov-env",
  "asimov-module",

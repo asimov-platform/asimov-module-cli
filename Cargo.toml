@@ -24,8 +24,8 @@ unstable = ["all"]
 [build-dependencies]
 cfg_aliases = "0.2"
 shadow-rs = { version = "1.4", features = [
-    "build",
-    "tzdb",
+  "build",
+  "tzdb",
 ], default-features = false }
 cc = "1.2"
 
@@ -34,10 +34,10 @@ indoc = "2.0"
 temp-dir = "0.1"
 
 [dependencies]
-asimov-env = "25.0.1"
-asimov-installer = "25.0.1"
-asimov-module = "25.0.1"
-asimov-registry = "25.0.1"
+asimov-env = "25.0.2"
+asimov-installer = "25.0.2"
+asimov-module = "25.0.2"
+asimov-registry = "25.0.2"
 clap = { version = "4.5", default-features = false }
 clientele = { version = "0.3.8", features = ["serde-json", "tokio"] }
 color-print = "=0.3.7"
@@ -47,9 +47,9 @@ known-types-pypi = { version = "0.0.1", features = ["serde"] }
 known-types-rubygems = { version = "0.0.1", features = ["serde"] }
 open = "5"
 reqwest = { version = "0.12", default-features = false, features = [
-    "json",
-    "rustls-tls",
-    "rustls-tls-native-roots",
+  "json",
+  "rustls-tls",
+  "rustls-tls-native-roots",
 ] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -62,7 +62,7 @@ tar = "0.4"
 serde_yml = { version = "0.0.12", default-features = false }
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = [
-    "fmt",
+  "fmt",
 ] }
 
 [profile.release]
