@@ -34,7 +34,7 @@ indoc = "2.0"
 temp-dir = "0.1"
 
 [dependencies]
-asimov-env = "25.0.0-dev.25"
+asimov-env = "25.0.0"
 asimov-installer = "25.0.0-dev.25"
 asimov-module = "25.0.0-dev.25"
 asimov-registry = "25.0.0-dev.25"
