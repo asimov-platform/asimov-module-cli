@@ -121,7 +121,7 @@ pub async fn install(
             })?;
         } else {
             ceprintln!(
-                "<s,y>warn:</> Module <s>{module_name}</> can't be enabled automatically due to missing configuration."
+                "<s,y>warn:</> Module <s>{module_name}</> wasn't enabled automatically due to missing configuration."
             );
             ceprintln!("<s,dim>hint:</> Module <s>{module_name}</> requires configuration:");
 
